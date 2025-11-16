@@ -1,16 +1,24 @@
 package com.example.myapplication;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.TimePickerDialog;
 import androidx.appcompat.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.CalendarView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
@@ -18,6 +26,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -31,6 +40,7 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
+    private static final int PERMISSION_REQUEST_CODE = 1001;
     private CalendarView calendarView;
     private TextView selectedDateText;
     private TextView currentDateTimeDisplay;
@@ -71,6 +81,18 @@ public class MainActivity extends AppCompatActivity {
             setupCalendar();
             setupListeners();
             updateReminderIndicator();
+            
+            // Request notification permission (Android 13+)
+            requestNotificationPermission();
+            
+            // Create notification channel for Android O+
+            NotificationHelper.createNotificationChannel(this);
+            
+            // Restore all alarms for active reminders with notifications enabled
+            restoreAllAlarms();
+            
+            // Debug: Print all reminders info
+            AlarmDebugHelper.debugAllReminders(this);
         } catch (Exception e) {
             Log.e(TAG, "App initialization failed", e);
             Toast.makeText(this, "App initialization failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -93,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
     private void initData() {
         reminderManager = new ReminderManager(this);
         dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-        timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+        timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()); // Display seconds
         displayDateFormat = new SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.ENGLISH);
         indicatorDateFormat = new SimpleDateFormat("MMM dd", Locale.ENGLISH);
         currentDateTimeFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.ENGLISH);
@@ -102,8 +124,9 @@ public class MainActivity extends AppCompatActivity {
         todayDate = selectedDate;
         updateSelectedDateText();
         
+        // Highlight today's date
         if (calendarView != null) {
-            calendarView.setDate(today.getTime(), false, true);
+            highlightToday();
         }
         
         updateYearText();
@@ -119,6 +142,9 @@ public class MainActivity extends AppCompatActivity {
             today.set(Calendar.MINUTE, 0);
             today.set(Calendar.SECOND, 0);
             today.set(Calendar.MILLISECOND, 0);
+            
+            // Set current date as selected date (will be highlighted)
+            calendarView.setDate(today.getTimeInMillis(), false, true);
             
             Calendar oneYearAgo = (Calendar) today.clone();
             oneYearAgo.add(Calendar.YEAR, -1);
@@ -205,6 +231,9 @@ public class MainActivity extends AppCompatActivity {
         TextInputEditText contentEdit = dialogView.findViewById(R.id.reminderContentEdit);
         TextInputEditText startTimeEdit = dialogView.findViewById(R.id.startTimeEdit);
         TextInputEditText endTimeEdit = dialogView.findViewById(R.id.endTimeEdit);
+        SwitchMaterial notificationSwitch = dialogView.findViewById(R.id.notificationSwitch);
+        LinearLayout notificationTimeLayout = dialogView.findViewById(R.id.notificationTimeLayout);
+        TextInputEditText notificationTimeEdit = dialogView.findViewById(R.id.notificationTimeEdit);
 
         final Reminder finalReminder = reminder;
         boolean isEdit = finalReminder != null;
@@ -218,11 +247,38 @@ public class MainActivity extends AppCompatActivity {
             contentEdit.setText(finalReminder.getContent());
             startTimeEdit.setText(finalReminder.getStartTime());
             endTimeEdit.setText(finalReminder.getEndTime());
+            if (notificationSwitch != null) {
+                notificationSwitch.setChecked(finalReminder.isEnableNotification());
+            }
+            if (notificationTimeEdit != null) {
+                notificationTimeEdit.setText(String.valueOf(finalReminder.getNotificationMinutesBefore()));
+            }
+        } else {
+            // Default values for new reminder
+            if (notificationSwitch != null) {
+                notificationSwitch.setChecked(false);
+            }
+            if (notificationTimeEdit != null) {
+                notificationTimeEdit.setText("5");
+            }
+        }
+
+        // Show/hide notification time layout based on switch state
+        if (notificationSwitch != null && notificationTimeLayout != null) {
+            notificationTimeLayout.setVisibility(notificationSwitch.isChecked() ? View.VISIBLE : View.GONE);
+            notificationSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                notificationTimeLayout.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+            });
         }
 
         // Set up time picker
         startTimeEdit.setOnClickListener(v -> showTimePicker(startTimeEdit));
         endTimeEdit.setOnClickListener(v -> showTimePicker(endTimeEdit));
+
+        // Set up notification time picker (show dialog with predefined options)
+        if (notificationTimeEdit != null) {
+            notificationTimeEdit.setOnClickListener(v -> showNotificationTimePicker(notificationTimeEdit));
+        }
 
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.CustomDialogTheme)
                 .setView(dialogView)
@@ -251,18 +307,54 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
 
+                    // Get notification settings
+                    boolean enableNotification = notificationSwitch != null && notificationSwitch.isChecked();
+                    int notificationMinutesBefore = 5; // Default
+                    if (enableNotification && notificationTimeEdit != null) {
+                        String minutesStr = notificationTimeEdit.getText() != null ? notificationTimeEdit.getText().toString().trim() : "";
+                        if (!minutesStr.isEmpty()) {
+                            try {
+                                notificationMinutesBefore = Integer.parseInt(minutesStr);
+                                if (notificationMinutesBefore < 0) {
+                                    notificationMinutesBefore = 0;
+                                } else if (notificationMinutesBefore > 1440) { // Max 24 hours
+                                    notificationMinutesBefore = 1440;
+                                }
+                            } catch (NumberFormatException e) {
+                                Log.d(TAG, "Invalid notification minutes, using default", e);
+                                notificationMinutesBefore = 5;
+                            }
+                        }
+                    }
+
                     Reminder reminderToSave;
                     if (isEdit) {
+                        // Cancel old alarm if exists
+                        if (finalReminder.isEnableNotification()) {
+                            AlarmHelper.cancelAlarm(MainActivity.this, finalReminder);
+                        }
+                        
                         finalReminder.setTitle(title);
                         finalReminder.setContent(content);
                         finalReminder.setStartTime(startTime);
                         finalReminder.setEndTime(endTime);
                         finalReminder.setTimestamp(System.currentTimeMillis());
+                        finalReminder.setEnableNotification(enableNotification);
+                        finalReminder.setNotificationMinutesBefore(notificationMinutesBefore);
                         reminderToSave = finalReminder;
                     } else {
                         reminderToSave = new Reminder(UUID.randomUUID().toString(), selectedDate, title, content, startTime, endTime, System.currentTimeMillis());
+                        reminderToSave.setEnableNotification(enableNotification);
+                        reminderToSave.setNotificationMinutesBefore(notificationMinutesBefore);
                     }
+                    
                     reminderManager.saveReminder(reminderToSave);
+                    
+                    // Set alarm if notification is enabled
+                    if (enableNotification && !startTime.isEmpty()) {
+                        AlarmHelper.setAlarm(MainActivity.this, reminderToSave);
+                    }
+                    
                     Toast.makeText(MainActivity.this, getString(R.string.reminder_saved), Toast.LENGTH_SHORT).show();
                     updateReminderIndicator();
                     dialog.dismiss();
@@ -297,6 +389,36 @@ public class MainActivity extends AppCompatActivity {
         }, hour, minute, true);
 
         timePickerDialog.show();
+    }
+
+    private void showNotificationTimePicker(TextInputEditText timeEdit) {
+        String[] options = {"0", "5", "10", "15", "30", "60"};
+        String[] displayOptions = {
+            getString(R.string.at_time),
+            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "5"),
+            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "10"),
+            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "15"),
+            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "30"),
+            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "60")
+        };
+
+        String currentValue = timeEdit.getText() != null ? timeEdit.getText().toString().trim() : "5";
+        int selectedIndex = 1; // Default to 5 minutes
+        for (int i = 0; i < options.length; i++) {
+            if (options[i].equals(currentValue)) {
+                selectedIndex = i;
+                break;
+            }
+        }
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(getString(R.string.select_reminder_time))
+                .setSingleChoiceItems(displayOptions, selectedIndex, (dialog, which) -> {
+                    timeEdit.setText(options[which]);
+                    dialog.dismiss();
+                })
+                .setNegativeButton(getString(R.string.cancel), null)
+                .show();
     }
 
     private void updateYearText() {
@@ -484,6 +606,9 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             
+            // Update calendar reminder marks
+            updateCalendarReminderMarks(datesWithReminders);
+            
             if (datesWithReminders.isEmpty()) {
                 reminderIndicatorText.setVisibility(View.GONE);
                 return;
@@ -513,6 +638,38 @@ public class MainActivity extends AppCompatActivity {
             reminderIndicatorText.setVisibility(View.GONE);
         }
     }
+    
+    /**
+     * Update calendar reminder marks
+     * Note: CalendarView has limited customization, so we rely on text indicator below calendar
+     */
+    private void updateCalendarReminderMarks(Set<String> datesWithReminders) {
+        // CalendarView doesn't support direct date marking
+        // The reminder indicator text below the calendar shows dates with reminders
+    }
+    
+    /**
+     * Highlight today's date
+     */
+    private void highlightToday() {
+        if (calendarView == null) {
+            return;
+        }
+        
+        try {
+            Calendar today = Calendar.getInstance();
+            today.set(Calendar.HOUR_OF_DAY, 0);
+            today.set(Calendar.MINUTE, 0);
+            today.set(Calendar.SECOND, 0);
+            today.set(Calendar.MILLISECOND, 0);
+            
+            // Set current date as selected date
+            // CalendarView will automatically highlight selected date
+            calendarView.setDate(today.getTimeInMillis(), false, true);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to highlight today", e);
+        }
+    }
 
     private void startTimeUpdates() {
         if (timeHandler != null && timeRunnable != null) {
@@ -535,6 +692,55 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         timeHandler.post(timeRunnable);
+    }
+
+    private void requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "Requesting POST_NOTIFICATIONS permission");
+                ActivityCompat.requestPermissions(this,
+                        new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
+                        PERMISSION_REQUEST_CODE);
+            } else {
+                Log.d(TAG, "POST_NOTIFICATIONS permission already granted");
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "Notification permission granted");
+                Toast.makeText(this, getString(R.string.notification_permission_granted), Toast.LENGTH_SHORT).show();
+            } else {
+                Log.w(TAG, "Notification permission denied");
+                Toast.makeText(this, getString(R.string.notification_permission_required), Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private void restoreAllAlarms() {
+        if (reminderManager == null) {
+            return;
+        }
+        try {
+            List<Reminder> allReminders = reminderManager.getAllReminders();
+            int restoredCount = 0;
+            for (Reminder reminder : allReminders) {
+                if (reminder != null && !reminder.isCompleted() && !reminder.isDeleted() 
+                        && reminder.isEnableNotification() && reminder.getStartTime() != null 
+                        && !reminder.getStartTime().isEmpty()) {
+                    AlarmHelper.setAlarm(this, reminder);
+                    restoredCount++;
+                }
+            }
+            Log.d(TAG, "Restored " + restoredCount + " alarms");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to restore alarms", e);
+        }
     }
 
     @Override

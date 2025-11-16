@@ -12,6 +12,8 @@ public class Reminder implements Serializable {
     private long timestamp;
     private boolean isCompleted; // Whether completed
     private boolean isDeleted; // Whether deleted
+    private boolean enableNotification; // Whether to enable system notification
+    private int notificationMinutesBefore; // Minutes before reminder time to notify (e.g., 5, 10, 15)
 
     public Reminder(String id, String date, String title, String content, String startTime, String endTime, long timestamp) {
         this.id = id;
@@ -23,6 +25,8 @@ public class Reminder implements Serializable {
         this.timestamp = timestamp;
         this.isCompleted = false;
         this.isDeleted = false;
+        this.enableNotification = false;
+        this.notificationMinutesBefore = 5; // Default: 5 minutes before
     }
 
     public String getId() {
@@ -87,6 +91,22 @@ public class Reminder implements Serializable {
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public boolean isEnableNotification() {
+        return enableNotification;
+    }
+
+    public void setEnableNotification(boolean enableNotification) {
+        this.enableNotification = enableNotification;
+    }
+
+    public int getNotificationMinutesBefore() {
+        return notificationMinutesBefore;
+    }
+
+    public void setNotificationMinutesBefore(int notificationMinutesBefore) {
+        this.notificationMinutesBefore = notificationMinutesBefore;
     }
 }
 

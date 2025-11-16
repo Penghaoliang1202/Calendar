@@ -41,4 +41,17 @@
     <string name="start_time_hint">Start</string>
     <string name="end_time_hint">End</string>
     <string name="time_arrow">→</string>
+    <string name="enable_notification">🔔 Enable System Reminder</string>
+    <string name="remind_before">Remind me</string>
+    <string name="minutes_before">Minutes</string>
+    <string name="minutes_before_hint">%1$s minutes before</string>
+    <string name="at_time">At the time</string>
+    <string name="select_reminder_time">Select Reminder Time</string>
+    <string name="notification_title">Reminder: %1$s</string>
+    <string name="notification_content">%1$s</string>
+    <string name="notification_channel_name">Reminder Notifications</string>
+    <string name="notification_channel_description">Notifications for calendar reminders</string>
+    <string name="reminder_date_indicator">Dates with reminders are marked</string>
+    <string name="notification_permission_granted">Notification permission granted</string>
+    <string name="notification_permission_required">Notification permission is required to receive reminders</string>
 </resources>
