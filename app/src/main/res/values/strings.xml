@@ -54,4 +54,8 @@
     <string name="reminder_date_indicator">Dates with reminders are marked</string>
     <string name="notification_permission_granted">Notification permission granted</string>
     <string name="notification_permission_required">Notification permission is required to receive reminders</string>
+    <string name="app_initialization_failed">App initialization failed: %1$s</string>
+    <string name="cannot_select_past_dates">Cannot select past dates</string>
+    <string name="cannot_add_reminders_past_dates">Cannot add reminders for past dates</string>
+    <string name="failed_to_show_year_month_picker">Failed to show year/month picker</string>
 </resources>

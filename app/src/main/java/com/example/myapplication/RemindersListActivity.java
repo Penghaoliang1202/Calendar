@@ -61,7 +61,7 @@ public class RemindersListActivity extends AppCompatActivity {
         reminderAdapter = new ReminderAdapter(new ArrayList<>(), new ReminderAdapter.OnReminderClickListener() {
             @Override
             public void onEditClick(Reminder reminder) {
-                if (!reminder.isCompleted()) {
+                if (reminder != null && !reminder.isCompleted()) {
                     showReminderDialog(reminder);
                 }
             }
@@ -167,6 +167,11 @@ public class RemindersListActivity extends AppCompatActivity {
     }
 
     private void showReminderDialog(Reminder reminder) {
+        if (reminder == null) {
+            Log.e(TAG, "Cannot show reminder dialog: reminder is null");
+            return;
+        }
+        
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_reminder, null);
         TextView dialogTitle = dialogView.findViewById(R.id.dialogTitle);
         TextInputEditText titleEdit = dialogView.findViewById(R.id.reminderTitleEdit);
@@ -178,31 +183,22 @@ public class RemindersListActivity extends AppCompatActivity {
         TextInputEditText notificationTimeEdit = dialogView.findViewById(R.id.notificationTimeEdit);
 
         final Reminder finalReminder = reminder;
-        boolean isEdit = finalReminder != null;
+        boolean isEdit = true; // In RemindersListActivity, this is always an edit operation
         
         if (dialogTitle != null) {
-            dialogTitle.setText(isEdit ? getString(R.string.edit_reminder) : getString(R.string.new_reminder));
+            dialogTitle.setText(getString(R.string.edit_reminder));
         }
         
-        if (isEdit) {
-            titleEdit.setText(finalReminder.getTitle());
-            contentEdit.setText(finalReminder.getContent());
-            startTimeEdit.setText(finalReminder.getStartTime());
-            endTimeEdit.setText(finalReminder.getEndTime());
-            if (notificationSwitch != null) {
-                notificationSwitch.setChecked(finalReminder.isEnableNotification());
-            }
-            if (notificationTimeEdit != null) {
-                notificationTimeEdit.setText(String.valueOf(finalReminder.getNotificationMinutesBefore()));
-            }
-        } else {
-            // Default values for new reminder
-            if (notificationSwitch != null) {
-                notificationSwitch.setChecked(false);
-            }
-            if (notificationTimeEdit != null) {
-                notificationTimeEdit.setText("5");
-            }
+        // Set reminder values
+        titleEdit.setText(finalReminder.getTitle());
+        contentEdit.setText(finalReminder.getContent());
+        startTimeEdit.setText(finalReminder.getStartTime());
+        endTimeEdit.setText(finalReminder.getEndTime());
+        if (notificationSwitch != null) {
+            notificationSwitch.setChecked(finalReminder.isEnableNotification());
+        }
+        if (notificationTimeEdit != null) {
+            notificationTimeEdit.setText(String.valueOf(finalReminder.getNotificationMinutesBefore()));
         }
 
         // Show/hide notification time layout based on switch state
@@ -347,7 +343,9 @@ public class RemindersListActivity extends AppCompatActivity {
         int selectedIndex = 1; // Default to 5 minutes
         for (int i = 0; i < options.length; i++) {
             if (options[i].equals(currentValue)) {
-                selectedIndex = i;
+                if (selectedIndex != i) {
+                    selectedIndex = i;
+                }
                 break;
             }
         }

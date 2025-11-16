@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.Build;
 import android.util.Log;
 import androidx.core.app.NotificationCompat;
 
@@ -17,27 +16,26 @@ public class NotificationHelper {
     private static final int NOTIFICATION_ID_BASE = 1000;
 
     public static void createNotificationChannel(Context context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
-            if (notificationManager == null) {
-                return;
-            }
-
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    context.getString(R.string.notification_channel_name),
-                    NotificationManager.IMPORTANCE_HIGH
-            );
-            channel.setDescription(context.getString(R.string.notification_channel_description));
-            channel.enableVibration(true);
-            channel.enableLights(true);
-
-            // Set default notification sound
-            Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            channel.setSound(soundUri, null);
-
-            notificationManager.createNotificationChannel(channel);
+        // Since minSdk is 27 (Android 8.1), notification channels are always available (API 26+)
+        NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
+        if (notificationManager == null) {
+            return;
         }
+
+        NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                context.getString(R.string.notification_channel_name),
+                NotificationManager.IMPORTANCE_HIGH
+        );
+        channel.setDescription(context.getString(R.string.notification_channel_description));
+        channel.enableVibration(true);
+        channel.enableLights(true);
+
+        // Set default notification sound
+        Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        channel.setSound(soundUri, null);
+
+        notificationManager.createNotificationChannel(channel);
     }
 
     public static void showReminderNotification(Context context, Reminder reminder) {
@@ -101,21 +99,5 @@ public class NotificationHelper {
         }
     }
 
-    public static void cancelReminderNotification(Context context, Reminder reminder) {
-        if (context == null || reminder == null) {
-            return;
-        }
-
-        try {
-            NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
-            if (notificationManager != null) {
-                int notificationId = NOTIFICATION_ID_BASE + Math.abs(reminder.getId().hashCode());
-                notificationManager.cancel(notificationId);
-                Log.d(TAG, "Notification cancelled for reminder: " + reminder.getId());
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to cancel notification", e);
-        }
-    }
 }
 

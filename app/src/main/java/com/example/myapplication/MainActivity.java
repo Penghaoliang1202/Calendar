@@ -1,10 +1,7 @@
 package com.example.myapplication;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.app.TimePickerDialog;
 import androidx.appcompat.app.AlertDialog;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -17,6 +14,7 @@ import android.widget.CalendarView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.activity.EdgeToEdge;
@@ -73,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
                     Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
                     v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
                     return insets;
-                });
+                }); // Cannot be simplified - multiple statements
             }
 
             initViews();
@@ -95,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
             AlarmDebugHelper.debugAllReminders(this);
         } catch (Exception e) {
             Log.e(TAG, "App initialization failed", e);
-            Toast.makeText(this, "App initialization failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.app_initialization_failed, e.getMessage()), Toast.LENGTH_LONG).show();
             finish();
         }
     }
@@ -154,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
                 String selectedDateStr = String.format(Locale.getDefault(), "%04d-%02d-%02d", year, month + 1, dayOfMonth);
                 
                 if (isDateInPast(selectedDateStr)) {
-                    Toast.makeText(MainActivity.this, "Cannot select past dates", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, getString(R.string.cannot_select_past_dates), Toast.LENGTH_SHORT).show();
                     calendarView.setDate(today.getTimeInMillis(), false, true);
                     selectedDate = dateFormat.format(today.getTime());
                 } else {
@@ -182,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
         if (addReminderButton != null) {
             addReminderButton.setOnClickListener(v -> {
                 if (isDateInPast(selectedDate)) {
-                    Toast.makeText(MainActivity.this, "Cannot add reminders for past dates", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, getString(R.string.cannot_add_reminders_past_dates), Toast.LENGTH_SHORT).show();
                 } else {
                     showReminderDialog();
                 }
@@ -190,10 +188,7 @@ public class MainActivity extends AppCompatActivity {
         }
         
         if (viewRemindersButton != null) {
-            viewRemindersButton.setOnClickListener(v -> {
-                Intent intent = new Intent(MainActivity.this, RemindersListActivity.class);
-                startActivity(intent);
-            });
+            viewRemindersButton.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, RemindersListActivity.class)));
         }
     }
 
@@ -266,9 +261,7 @@ public class MainActivity extends AppCompatActivity {
         // Show/hide notification time layout based on switch state
         if (notificationSwitch != null && notificationTimeLayout != null) {
             notificationTimeLayout.setVisibility(notificationSwitch.isChecked() ? View.VISIBLE : View.GONE);
-            notificationSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                notificationTimeLayout.setVisibility(isChecked ? View.VISIBLE : View.GONE);
-            });
+            notificationSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> notificationTimeLayout.setVisibility(isChecked ? View.VISIBLE : View.GONE));
         }
 
         // Set up time picker
@@ -322,7 +315,6 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             } catch (NumberFormatException e) {
                                 Log.d(TAG, "Invalid notification minutes, using default", e);
-                                notificationMinutesBefore = 5;
                             }
                         }
                     }
@@ -406,7 +398,9 @@ public class MainActivity extends AppCompatActivity {
         int selectedIndex = 1; // Default to 5 minutes
         for (int i = 0; i < options.length; i++) {
             if (options[i].equals(currentValue)) {
-                selectedIndex = i;
+                if (selectedIndex != i) {
+                    selectedIndex = i;
+                }
                 break;
             }
         }
@@ -573,7 +567,7 @@ public class MainActivity extends AppCompatActivity {
                     updateReminderIndicator();
                 }
             });
-            builder.setNegativeButton("Cancel", null);
+            builder.setNegativeButton(getString(R.string.cancel), null);
             
             AlertDialog dialog = builder.create();
             if (dialog.getWindow() != null) {
@@ -584,7 +578,8 @@ public class MainActivity extends AppCompatActivity {
             }
             dialog.show();
         } catch (Exception e) {
-            Toast.makeText(this, "Failed to show year/month picker", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Failed to show year/month picker", e);
+            Toast.makeText(this, getString(R.string.failed_to_show_year_month_picker), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -605,9 +600,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
-            
-            // Update calendar reminder marks
-            updateCalendarReminderMarks(datesWithReminders);
             
             if (datesWithReminders.isEmpty()) {
                 reminderIndicatorText.setVisibility(View.GONE);
@@ -639,14 +631,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     
-    /**
-     * Update calendar reminder marks
-     * Note: CalendarView has limited customization, so we rely on text indicator below calendar
-     */
-    private void updateCalendarReminderMarks(Set<String> datesWithReminders) {
-        // CalendarView doesn't support direct date marking
-        // The reminder indicator text below the calendar shows dates with reminders
-    }
     
     /**
      * Highlight today's date
@@ -709,7 +693,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {

@@ -110,16 +110,10 @@ public class AlarmHelper {
                 }
             }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-                Log.d(TAG, "Alarm set using setExactAndAllowWhileIdle");
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-                Log.d(TAG, "Alarm set using setExact");
-            } else {
-                alarmManager.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-                Log.d(TAG, "Alarm set using set");
-            }
+            // Since minSdk is 27 (Android 8.1), setExactAndAllowWhileIdle is always available
+            // This method is available from API 23 (Android 6.0)
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+            Log.d(TAG, "Alarm set using setExactAndAllowWhileIdle");
 
             Log.d(TAG, "✓ Alarm successfully set for reminder: " + reminder.getId());
             Log.d(TAG, "  Reminder title: " + reminder.getTitle());
