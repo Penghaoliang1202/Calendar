@@ -60,4 +60,5 @@
     <string name="failed_to_show_year_month_picker">Failed to show year/month picker</string>
     <string name="reminder_time_past">Reminder time has already passed. Alarm not set.</string>
     <string name="reminder_time_past_detail">The reminder time (%1$s) is in the past. Please select a future time.</string>
+    <string name="notification_time_format">⏰ %1$s %2$s</string>
 </resources>

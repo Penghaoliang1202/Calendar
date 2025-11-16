@@ -69,11 +69,27 @@ public class MainActivity extends AppCompatActivity {
             EdgeToEdge.enable(this);
             setContentView(R.layout.activity_main);
             
+            // Handle window insets for Toolbar
+            com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.toolbar);
+            if (toolbar != null) {
+                ViewCompat.setOnApplyWindowInsetsListener(toolbar, (v, insets) -> {
+                    Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                    v.setPadding(
+                        v.getPaddingStart(),
+                        systemBars.top,
+                        v.getPaddingEnd(),
+                        v.getPaddingBottom()
+                    );
+                    return insets;
+                });
+            }
+            
             View mainView = findViewById(R.id.main);
             if (mainView != null) {
                 ViewCompat.setOnApplyWindowInsetsListener(mainView, (v, insets) -> {
                     Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-                    v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                    // Only apply horizontal and bottom padding, top padding is handled by Toolbar
+                    v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom);
                     return insets;
                 }); // Cannot be simplified - multiple statements
             }

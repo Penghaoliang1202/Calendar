@@ -13,8 +13,12 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -44,80 +48,101 @@ public class RemindersListActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_reminders_list);
+        try {
+            EdgeToEdge.enable(this);
+            setContentView(R.layout.activity_reminders_list);
 
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle(getString(R.string.all_reminders));
-        }
-
-        remindersRecyclerView = findViewById(R.id.remindersRecyclerView);
-        emptyRemindersText = findViewById(R.id.emptyRemindersText);
-        historyButton = findViewById(R.id.historyButton);
-        clearHistoryButton = findViewById(R.id.clearHistoryButton);
-
-        reminderManager = new ReminderManager(this);
-        reminderAdapter = new ReminderAdapter(new ArrayList<>(), new ReminderAdapter.OnReminderClickListener() {
-            @Override
-            public void onEditClick(Reminder reminder) {
-                if (reminder != null && !reminder.isCompleted()) {
-                    showReminderDialog(reminder);
-                }
+            // Handle window insets for Toolbar
+            MaterialToolbar toolbar = findViewById(R.id.toolbar);
+            if (toolbar != null) {
+                ViewCompat.setOnApplyWindowInsetsListener(toolbar, (v, insets) -> {
+                    Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                    v.setPadding(
+                        v.getPaddingStart(),
+                        systemBars.top,
+                        v.getPaddingEnd(),
+                        v.getPaddingBottom()
+                    );
+                    return insets;
+                });
+            }
+            
+            setSupportActionBar(toolbar);
+            
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+                getSupportActionBar().setTitle(getString(R.string.all_reminders));
             }
 
-            @Override
-            public void onDeleteClick(Reminder reminder) {
-                showDeleteConfirmDialog(reminder);
-            }
+            remindersRecyclerView = findViewById(R.id.remindersRecyclerView);
+            emptyRemindersText = findViewById(R.id.emptyRemindersText);
+            historyButton = findViewById(R.id.historyButton);
+            clearHistoryButton = findViewById(R.id.clearHistoryButton);
 
-            @Override
-            public void onCompleteClick(Reminder reminder) {
-                // Cancel alarm if notification is enabled
-                if (reminder.isEnableNotification()) {
-                    AlarmHelper.cancelAlarm(RemindersListActivity.this, reminder);
-                }
-                reminderManager.markAsCompleted(reminder.getId());
-                loadReminders();
-            }
-
-            @Override
-            public void onRestoreClick(Reminder reminder) {
-                reminderManager.restoreReminder(reminder.getId());
-                // Restore alarm if notification is enabled
-                Reminder restoredReminder = null;
-                for (Reminder r : reminderManager.getAllReminders()) {
-                    if (r != null && reminder.getId().equals(r.getId())) {
-                        restoredReminder = r;
-                        break;
+            reminderManager = new ReminderManager(this);
+            reminderAdapter = new ReminderAdapter(new ArrayList<>(), new ReminderAdapter.OnReminderClickListener() {
+                @Override
+                public void onEditClick(Reminder reminder) {
+                    if (reminder != null && !reminder.isCompleted()) {
+                        showReminderDialog(reminder);
                     }
                 }
-                if (restoredReminder != null && restoredReminder.isEnableNotification() && !restoredReminder.getStartTime().isEmpty()) {
-                    boolean alarmSet = AlarmHelper.setAlarm(RemindersListActivity.this, restoredReminder);
-                    if (!alarmSet) {
-                        String reminderDateTime = restoredReminder.getDate() + " " + restoredReminder.getStartTime();
-                        Toast.makeText(RemindersListActivity.this, getString(R.string.reminder_time_past_detail, reminderDateTime), Toast.LENGTH_LONG).show();
-                    }
+
+                @Override
+                public void onDeleteClick(Reminder reminder) {
+                    showDeleteConfirmDialog(reminder);
                 }
-                Toast.makeText(RemindersListActivity.this, getString(R.string.reminder_restored), Toast.LENGTH_SHORT).show();
-                loadReminders();
+
+                @Override
+                public void onCompleteClick(Reminder reminder) {
+                    // Cancel alarm if notification is enabled
+                    if (reminder.isEnableNotification()) {
+                        AlarmHelper.cancelAlarm(RemindersListActivity.this, reminder);
+                    }
+                    reminderManager.markAsCompleted(reminder.getId());
+                    loadReminders();
+                }
+
+                @Override
+                public void onRestoreClick(Reminder reminder) {
+                    reminderManager.restoreReminder(reminder.getId());
+                    // Restore alarm if notification is enabled
+                    Reminder restoredReminder = null;
+                    for (Reminder r : reminderManager.getAllReminders()) {
+                        if (r != null && reminder.getId().equals(r.getId())) {
+                            restoredReminder = r;
+                            break;
+                        }
+                    }
+                    if (restoredReminder != null && restoredReminder.isEnableNotification() && !restoredReminder.getStartTime().isEmpty()) {
+                        boolean alarmSet = AlarmHelper.setAlarm(RemindersListActivity.this, restoredReminder);
+                        if (!alarmSet) {
+                            String reminderDateTime = restoredReminder.getDate() + " " + restoredReminder.getStartTime();
+                            Toast.makeText(RemindersListActivity.this, getString(R.string.reminder_time_past_detail, reminderDateTime), Toast.LENGTH_LONG).show();
+                        }
+                    }
+                    Toast.makeText(RemindersListActivity.this, getString(R.string.reminder_restored), Toast.LENGTH_SHORT).show();
+                    loadReminders();
+                }
+            });
+
+            remindersRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+            remindersRecyclerView.setAdapter(reminderAdapter);
+
+            if (historyButton != null) {
+                historyButton.setOnClickListener(v -> toggleHistoryView());
             }
-        });
 
-        remindersRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        remindersRecyclerView.setAdapter(reminderAdapter);
+            if (clearHistoryButton != null) {
+                clearHistoryButton.setOnClickListener(v -> showClearHistoryConfirmDialog());
+            }
 
-        if (historyButton != null) {
-            historyButton.setOnClickListener(v -> toggleHistoryView());
+            loadReminders();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to initialize RemindersListActivity", e);
+            Toast.makeText(this, getString(R.string.app_initialization_failed, e.getMessage()), Toast.LENGTH_LONG).show();
+            finish();
         }
-
-        if (clearHistoryButton != null) {
-            clearHistoryButton.setOnClickListener(v -> showClearHistoryConfirmDialog());
-        }
-
-        loadReminders();
     }
 
     @Override
