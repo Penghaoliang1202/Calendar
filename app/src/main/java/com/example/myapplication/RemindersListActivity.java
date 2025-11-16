@@ -295,7 +295,7 @@ public class RemindersListActivity extends AppCompatActivity {
                                     notificationMinutesBefore = 1440;
                                 }
                             } catch (NumberFormatException e) {
-                                Log.d(TAG, "Invalid notification minutes, using default", e);
+                                // Invalid notification minutes, using default
                                 notificationMinutesBefore = 5;
                             }
                         }
@@ -379,7 +379,7 @@ public class RemindersListActivity extends AppCompatActivity {
                     minute = Integer.parseInt(parts[1]);
                 }
             } catch (Exception e) {
-                Log.d(TAG, "Failed to parse time, using default values", e);
+                // Failed to parse time, using default values
             }
         }
 

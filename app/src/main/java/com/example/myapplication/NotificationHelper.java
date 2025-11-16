@@ -42,14 +42,12 @@ public class NotificationHelper {
     }
 
     public static void showReminderNotification(Context context, Reminder reminder) {
-        Log.d(TAG, "showReminderNotification called");
         if (context == null || reminder == null) {
             Log.e(TAG, "Context or Reminder is null");
             return;
         }
 
         try {
-            Log.d(TAG, "Creating notification channel...");
             createNotificationChannel(context);
 
             // Create intent to open MainActivity
@@ -102,9 +100,7 @@ public class NotificationHelper {
             if (notificationManager != null) {
                 // Use reminder ID hash to create unique notification ID
                 int notificationId = NOTIFICATION_ID_BASE + Math.abs(reminder.getId().hashCode());
-                Log.d(TAG, "Displaying notification - ID: " + notificationId + ", Title: " + title);
                 notificationManager.notify(notificationId, builder.build());
-                Log.d(TAG, "✓ Notification successfully shown for reminder: " + reminder.getId());
             } else {
                 Log.e(TAG, "NotificationManager is null");
             }

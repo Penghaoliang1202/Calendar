@@ -11,9 +11,6 @@ public class AlarmReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(@NonNull Context context, @NonNull Intent intent) {
-        Log.d(TAG, "=== AlarmReceiver triggered ===");
-        Log.d(TAG, "Current time: " + new java.util.Date());
-        
         if (intent == null || context == null) {
             Log.e(TAG, "Intent or Context is null");
             return;
@@ -24,8 +21,6 @@ public class AlarmReceiver extends BroadcastReceiver {
             Log.e(TAG, "Reminder ID is missing");
             return;
         }
-
-        Log.d(TAG, "Alarm received for reminder ID: " + reminderId);
 
         // Load reminder from storage
         ReminderManager reminderManager = new ReminderManager(context);
@@ -44,14 +39,11 @@ public class AlarmReceiver extends BroadcastReceiver {
 
         // Check if reminder is still active
         if (reminder.isCompleted() || reminder.isDeleted()) {
-            Log.d(TAG, "Reminder is completed or deleted, skipping notification");
             return;
         }
 
         // Show notification
-        Log.d(TAG, "Calling NotificationHelper.showReminderNotification()");
         NotificationHelper.showReminderNotification(context, reminder);
-        Log.d(TAG, "=== AlarmReceiver processing completed ===");
     }
 }
 

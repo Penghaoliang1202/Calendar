@@ -108,9 +108,6 @@ public class MainActivity extends AppCompatActivity {
             
             // Restore all alarms for active reminders with notifications enabled
             restoreAllAlarms();
-            
-            // Debug: Print all reminders info
-            AlarmDebugHelper.debugAllReminders(this);
         } catch (Exception e) {
             Log.e(TAG, "App initialization failed", e);
             Toast.makeText(this, getString(R.string.app_initialization_failed, e.getMessage()), Toast.LENGTH_LONG).show();
@@ -359,7 +356,7 @@ public class MainActivity extends AppCompatActivity {
                                     notificationMinutesBefore = 1440;
                                 }
                             } catch (NumberFormatException e) {
-                                Log.d(TAG, "Invalid notification minutes, using default", e);
+                                // Invalid notification minutes, using default
                             }
                         }
                     }
@@ -441,7 +438,7 @@ public class MainActivity extends AppCompatActivity {
                     minute = Integer.parseInt(parts[1]);
                 }
             } catch (Exception e) {
-                Log.d(TAG, "Failed to parse time, using default values", e);
+                // Failed to parse time, using default values
             }
         }
 
@@ -608,7 +605,7 @@ public class MainActivity extends AppCompatActivity {
                             newCal.setTime(date);
                         }
                     } catch (Exception e) {
-                        Log.d(TAG, "Failed to parse selected date, using current date", e);
+                        // Failed to parse selected date, using current date
                     }
                     
                     newCal.set(Calendar.YEAR, selectedYear);
@@ -687,7 +684,7 @@ public class MainActivity extends AppCompatActivity {
                         displayDates.add(indicatorDateFormat.format(date));
                     }
                 } catch (Exception e) {
-                    Log.d(TAG, "Failed to format date: " + dateStr, e);
+                    // Failed to format date
                 }
             }
             
@@ -750,7 +747,7 @@ public class MainActivity extends AppCompatActivity {
                         currentDateTimeDisplay.setText(getString(R.string.date_time_format, dateStr, timeStr));
                     } catch (Exception e) {
                         // Activity or view may be destroyed, stop updating
-                        Log.d(TAG, "Failed to update time display, stopping updates", e);
+                        // Failed to update time display, stopping updates
                         return;
                     }
                 }
@@ -766,12 +763,11 @@ public class MainActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, "Requesting POST_NOTIFICATIONS permission");
                 ActivityCompat.requestPermissions(this,
                         new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
                         PERMISSION_REQUEST_CODE);
             } else {
-                Log.d(TAG, "POST_NOTIFICATIONS permission already granted");
+                // POST_NOTIFICATIONS permission already granted
             }
         }
     }
@@ -781,7 +777,6 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, "Notification permission granted");
                 Toast.makeText(this, getString(R.string.notification_permission_granted), Toast.LENGTH_SHORT).show();
             } else {
                 Log.w(TAG, "Notification permission denied");
@@ -805,11 +800,11 @@ public class MainActivity extends AppCompatActivity {
                     if (alarmSet) {
                         restoredCount++;
                     } else {
-                        Log.d(TAG, "Skipped restoring alarm for reminder (time in past): " + reminder.getId());
+                        // Skipped restoring alarm for reminder (time in past)
                     }
                 }
             }
-            Log.d(TAG, "Restored " + restoredCount + " alarms");
+            // Restored alarms
         } catch (Exception e) {
             Log.e(TAG, "Failed to restore alarms", e);
         }

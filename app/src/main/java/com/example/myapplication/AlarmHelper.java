@@ -25,7 +25,6 @@ public class AlarmHelper {
         }
 
         if (!reminder.isEnableNotification() || reminder.getStartTime() == null || reminder.getStartTime().isEmpty()) {
-            Log.d(TAG, "Reminder notification is disabled or start time is empty");
             return false;
         }
 
@@ -33,8 +32,6 @@ public class AlarmHelper {
             // Parse reminder date and time
             String dateStr = reminder.getDate(); // Format: yyyy-MM-dd
             String timeStr = reminder.getStartTime(); // Format: HH:mm
-
-            Log.d(TAG, "Setting alarm - Date: " + dateStr + ", Time: " + timeStr);
 
             if (dateStr == null || dateStr.isEmpty() || timeStr == null || timeStr.isEmpty()) {
                 Log.e(TAG, "Reminder date or time is empty");
@@ -67,19 +64,12 @@ public class AlarmHelper {
             calendar.set(Calendar.SECOND, 0);
             calendar.set(Calendar.MILLISECOND, 0);
 
-            Log.d(TAG, "Reminder time (before subtracting): " + calendar.getTime());
-
             // Subtract notification minutes
             int minutesBefore = reminder.getNotificationMinutesBefore();
             calendar.add(Calendar.MINUTE, -minutesBefore);
 
             long alarmTime = calendar.getTimeInMillis();
             long currentTime = System.currentTimeMillis();
-            long timeDifference = alarmTime - currentTime;
-
-            Log.d(TAG, "Alarm will trigger at: " + calendar.getTime());
-            Log.d(TAG, "Current time: " + new Date(currentTime));
-            Log.d(TAG, "Time difference: " + (timeDifference / 1000) + " seconds (" + (timeDifference / 60000) + " minutes)");
 
             // Check if the alarm time is in the past
             if (alarmTime <= currentTime) {
@@ -117,12 +107,6 @@ public class AlarmHelper {
             // Since minSdk is 27 (Android 8.1), setExactAndAllowWhileIdle is always available
             // This method is available from API 23 (Android 6.0)
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-            Log.d(TAG, "Alarm set using setExactAndAllowWhileIdle");
-
-            Log.d(TAG, "✓ Alarm successfully set for reminder: " + reminder.getId());
-            Log.d(TAG, "  Reminder title: " + reminder.getTitle());
-            Log.d(TAG, "  Will trigger at: " + calendar.getTime());
-            Log.d(TAG, "  Notification minutes before: " + minutesBefore);
             return true;
         } catch (ParseException e) {
             Log.e(TAG, "Failed to parse reminder date/time", e);
@@ -152,7 +136,6 @@ public class AlarmHelper {
             AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             if (alarmManager != null) {
                 alarmManager.cancel(pendingIntent);
-                Log.d(TAG, "Alarm cancelled for reminder: " + reminder.getId());
             }
         } catch (Exception e) {
             Log.e(TAG, "Failed to cancel alarm", e);
