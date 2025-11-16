@@ -18,6 +18,8 @@ public class ReminderManager {
     private static final String REMINDERS_KEY = "reminders_list";
     private final SharedPreferences sharedPreferences;
     private final Gson gson;
+    // Cache SimpleDateFormat to avoid repeated creation
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
     public ReminderManager(Context context) {
         sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -30,7 +32,9 @@ public class ReminderManager {
         }
         List<Reminder> reminders = getAllReminders();
         String reminderId = reminder.getId();
-        for (int i = 0; i < reminders.size(); i++) {
+        // Optimize: use size() once and check for null before equals
+        int size = reminders.size();
+        for (int i = 0; i < size; i++) {
             Reminder existingReminder = reminders.get(i);
             if (existingReminder != null && reminderId.equals(existingReminder.getId())) {
                 reminders.set(i, reminder);
@@ -109,8 +113,8 @@ public class ReminderManager {
     public List<Reminder> getActiveReminders() {
         List<Reminder> allReminders = getAllReminders();
         List<Reminder> activeReminders = new ArrayList<>();
-        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                .format(new Date());
+        // Use cached DATE_FORMAT instead of creating new SimpleDateFormat
+        String today = DATE_FORMAT.format(new Date());
         
         for (Reminder reminder : allReminders) {
             if (reminder != null && !reminder.isCompleted() && !reminder.isDeleted()) {

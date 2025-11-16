@@ -3,11 +3,13 @@ package com.example.myapplication;
 import android.annotation.SuppressLint;
 import android.app.TimePickerDialog;
 import androidx.appcompat.app.AlertDialog;
+import android.content.Context;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -93,7 +95,11 @@ public class RemindersListActivity extends AppCompatActivity {
                     }
                 }
                 if (restoredReminder != null && restoredReminder.isEnableNotification() && !restoredReminder.getStartTime().isEmpty()) {
-                    AlarmHelper.setAlarm(RemindersListActivity.this, restoredReminder);
+                    boolean alarmSet = AlarmHelper.setAlarm(RemindersListActivity.this, restoredReminder);
+                    if (!alarmSet) {
+                        String reminderDateTime = restoredReminder.getDate() + " " + restoredReminder.getStartTime();
+                        Toast.makeText(RemindersListActivity.this, getString(R.string.reminder_time_past_detail, reminderDateTime), Toast.LENGTH_LONG).show();
+                    }
                 }
                 Toast.makeText(RemindersListActivity.this, getString(R.string.reminder_restored), Toast.LENGTH_SHORT).show();
                 loadReminders();
@@ -234,10 +240,15 @@ public class RemindersListActivity extends AppCompatActivity {
             android.widget.Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             if (positiveButton != null) {
                 positiveButton.setOnClickListener(v -> {
-                    String title = titleEdit.getText() != null ? titleEdit.getText().toString().trim() : "";
-                    String content = contentEdit.getText() != null ? contentEdit.getText().toString().trim() : "";
-                    String startTime = startTimeEdit.getText() != null ? startTimeEdit.getText().toString().trim() : "";
-                    String endTime = endTimeEdit.getText() != null ? endTimeEdit.getText().toString().trim() : "";
+                    // Optimize: reduce null checks and string operations
+                    CharSequence titleSeq = titleEdit.getText();
+                    CharSequence contentSeq = contentEdit.getText();
+                    CharSequence startTimeSeq = startTimeEdit.getText();
+                    CharSequence endTimeSeq = endTimeEdit.getText();
+                    String title = titleSeq != null ? titleSeq.toString().trim() : "";
+                    String content = contentSeq != null ? contentSeq.toString().trim() : "";
+                    String startTime = startTimeSeq != null ? startTimeSeq.toString().trim() : "";
+                    String endTime = endTimeSeq != null ? endTimeSeq.toString().trim() : "";
 
                     if (TextUtils.isEmpty(title) && TextUtils.isEmpty(content)) {
                         Toast.makeText(RemindersListActivity.this, getString(R.string.please_enter_title_or_content), Toast.LENGTH_SHORT).show();
@@ -248,7 +259,8 @@ public class RemindersListActivity extends AppCompatActivity {
                     boolean enableNotification = notificationSwitch != null && notificationSwitch.isChecked();
                     int notificationMinutesBefore = 5; // Default
                     if (enableNotification && notificationTimeEdit != null) {
-                        String minutesStr = notificationTimeEdit.getText() != null ? notificationTimeEdit.getText().toString().trim() : "";
+                        CharSequence minutesSeq = notificationTimeEdit.getText();
+                        String minutesStr = minutesSeq != null ? minutesSeq.toString().trim() : "";
                         if (!minutesStr.isEmpty()) {
                             try {
                                 notificationMinutesBefore = Integer.parseInt(minutesStr);
@@ -290,8 +302,16 @@ public class RemindersListActivity extends AppCompatActivity {
                     
                     // Set alarm if notification is enabled
                     if (enableNotification && !startTime.isEmpty()) {
-                        AlarmHelper.setAlarm(RemindersListActivity.this, reminderToSave);
+                        boolean alarmSet = AlarmHelper.setAlarm(RemindersListActivity.this, reminderToSave);
+                        if (!alarmSet) {
+                            // Alarm time is in the past
+                            String reminderDateTime = reminderToSave.getDate() + " " + startTime;
+                            Toast.makeText(RemindersListActivity.this, getString(R.string.reminder_time_past_detail, reminderDateTime), Toast.LENGTH_LONG).show();
+                        }
                     }
+                    
+                    // Hide keyboard before dismissing dialog
+                    hideKeyboard(dialogView);
                     
                     loadReminders();
                     dialog.dismiss();
@@ -299,7 +319,24 @@ public class RemindersListActivity extends AppCompatActivity {
             }
         });
 
+        dialog.setOnDismissListener(dialogInterface -> {
+            // Hide keyboard when dialog is dismissed
+            hideKeyboard(dialogView);
+        });
+
         dialog.show();
+    }
+    
+    /**
+     * Hide the soft keyboard
+     */
+    private void hideKeyboard(View view) {
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+            }
+        }
     }
 
     private void showTimePicker(TextInputEditText timeEdit) {
@@ -307,7 +344,8 @@ public class RemindersListActivity extends AppCompatActivity {
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
         int minute = calendar.get(Calendar.MINUTE);
 
-        String currentTime = timeEdit.getText() != null ? timeEdit.getText().toString() : "";
+        CharSequence currentTimeSeq = timeEdit.getText();
+        String currentTime = currentTimeSeq != null ? currentTimeSeq.toString() : "";
         if (!currentTime.isEmpty()) {
             try {
                 String[] parts = currentTime.split(":");
@@ -339,7 +377,8 @@ public class RemindersListActivity extends AppCompatActivity {
             String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "60")
         };
 
-        String currentValue = timeEdit.getText() != null ? timeEdit.getText().toString().trim() : "5";
+        CharSequence currentValueSeq = timeEdit.getText();
+        String currentValue = currentValueSeq != null ? currentValueSeq.toString().trim() : "5";
         int selectedIndex = 1; // Default to 5 minutes
         for (int i = 0; i < options.length; i++) {
             if (options[i].equals(currentValue)) {

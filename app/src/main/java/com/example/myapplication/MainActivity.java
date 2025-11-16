@@ -2,6 +2,7 @@ package com.example.myapplication;
 
 import android.app.TimePickerDialog;
 import androidx.appcompat.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -10,6 +11,7 @@ import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.CalendarView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -54,9 +56,11 @@ public class MainActivity extends AppCompatActivity {
     private SimpleDateFormat displayDateFormat;
     private SimpleDateFormat indicatorDateFormat;
     private SimpleDateFormat currentDateTimeFormat;
+    private SimpleDateFormat monthFormat; // Cache month format to avoid repeated creation
     private android.os.Handler timeHandler;
     private Runnable timeRunnable;
     private String todayDate;
+    private String[] notificationDisplayOptions; // Cache notification display options
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,6 +121,17 @@ public class MainActivity extends AppCompatActivity {
         displayDateFormat = new SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.ENGLISH);
         indicatorDateFormat = new SimpleDateFormat("MMM dd", Locale.ENGLISH);
         currentDateTimeFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.ENGLISH);
+        monthFormat = new SimpleDateFormat("MMM", Locale.ENGLISH); // Cache month format
+        
+        // Pre-build notification display options to avoid repeated String.format calls
+        notificationDisplayOptions = new String[]{
+            getString(R.string.at_time),
+            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "5"),
+            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "10"),
+            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "15"),
+            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "30"),
+            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "60")
+        };
         Date today = new Date();
         selectedDate = dateFormat.format(today);
         todayDate = selectedDate;
@@ -168,11 +183,19 @@ public class MainActivity extends AppCompatActivity {
             updateReminderIndicator();
         }
         
+        // Year and month are now in a single clickable LinearLayout
+        // Find the parent LinearLayout that contains both yearText and monthText
         if (yearText != null) {
-            yearText.setOnClickListener(v -> showYearMonthPickerDialog());
-        }
-        if (monthText != null) {
-            monthText.setOnClickListener(v -> showYearMonthPickerDialog());
+            View parent = (View) yearText.getParent();
+            if (parent instanceof LinearLayout) {
+                parent.setOnClickListener(v -> showYearMonthPickerDialog());
+            } else {
+                // Fallback: set click listeners on individual TextViews
+                yearText.setOnClickListener(v -> showYearMonthPickerDialog());
+                if (monthText != null) {
+                    monthText.setOnClickListener(v -> showYearMonthPickerDialog());
+                }
+            }
         }
     }
 
@@ -290,10 +313,15 @@ public class MainActivity extends AppCompatActivity {
             android.widget.Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             if (positiveButton != null) {
                 positiveButton.setOnClickListener(v -> {
-                    String title = titleEdit.getText() != null ? titleEdit.getText().toString().trim() : "";
-                    String content = contentEdit.getText() != null ? contentEdit.getText().toString().trim() : "";
-                    String startTime = startTimeEdit.getText() != null ? startTimeEdit.getText().toString().trim() : "";
-                    String endTime = endTimeEdit.getText() != null ? endTimeEdit.getText().toString().trim() : "";
+                // Optimize: reduce null checks and string operations
+                CharSequence titleSeq = titleEdit.getText();
+                CharSequence contentSeq = contentEdit.getText();
+                CharSequence startTimeSeq = startTimeEdit.getText();
+                CharSequence endTimeSeq = endTimeEdit.getText();
+                String title = titleSeq != null ? titleSeq.toString().trim() : "";
+                String content = contentSeq != null ? contentSeq.toString().trim() : "";
+                String startTime = startTimeSeq != null ? startTimeSeq.toString().trim() : "";
+                String endTime = endTimeSeq != null ? endTimeSeq.toString().trim() : "";
 
                     if (TextUtils.isEmpty(title) && TextUtils.isEmpty(content)) {
                         Toast.makeText(MainActivity.this, getString(R.string.please_enter_title_or_content), Toast.LENGTH_SHORT).show();
@@ -304,7 +332,8 @@ public class MainActivity extends AppCompatActivity {
                     boolean enableNotification = notificationSwitch != null && notificationSwitch.isChecked();
                     int notificationMinutesBefore = 5; // Default
                     if (enableNotification && notificationTimeEdit != null) {
-                        String minutesStr = notificationTimeEdit.getText() != null ? notificationTimeEdit.getText().toString().trim() : "";
+                        CharSequence minutesSeq = notificationTimeEdit.getText();
+                        String minutesStr = minutesSeq != null ? minutesSeq.toString().trim() : "";
                         if (!minutesStr.isEmpty()) {
                             try {
                                 notificationMinutesBefore = Integer.parseInt(minutesStr);
@@ -344,8 +373,16 @@ public class MainActivity extends AppCompatActivity {
                     
                     // Set alarm if notification is enabled
                     if (enableNotification && !startTime.isEmpty()) {
-                        AlarmHelper.setAlarm(MainActivity.this, reminderToSave);
+                        boolean alarmSet = AlarmHelper.setAlarm(MainActivity.this, reminderToSave);
+                        if (!alarmSet) {
+                            // Alarm time is in the past
+                            String reminderDateTime = selectedDate + " " + startTime;
+                            Toast.makeText(MainActivity.this, getString(R.string.reminder_time_past_detail, reminderDateTime), Toast.LENGTH_LONG).show();
+                        }
                     }
+                    
+                    // Hide keyboard before dismissing dialog
+                    hideKeyboard(dialogView);
                     
                     Toast.makeText(MainActivity.this, getString(R.string.reminder_saved), Toast.LENGTH_SHORT).show();
                     updateReminderIndicator();
@@ -354,7 +391,24 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        dialog.setOnDismissListener(dialogInterface -> {
+            // Hide keyboard when dialog is dismissed
+            hideKeyboard(dialogView);
+        });
+        
         dialog.show();
+    }
+    
+    /**
+     * Hide the soft keyboard
+     */
+    private void hideKeyboard(View view) {
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+            }
+        }
     }
 
     private void showTimePicker(TextInputEditText timeEdit) {
@@ -385,14 +439,17 @@ public class MainActivity extends AppCompatActivity {
 
     private void showNotificationTimePicker(TextInputEditText timeEdit) {
         String[] options = {"0", "5", "10", "15", "30", "60"};
-        String[] displayOptions = {
-            getString(R.string.at_time),
-            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "5"),
-            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "10"),
-            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "15"),
-            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "30"),
-            String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "60")
-        };
+        // Use cached displayOptions instead of creating new array each time
+        String[] displayOptions = notificationDisplayOptions != null 
+            ? notificationDisplayOptions 
+            : new String[]{
+                getString(R.string.at_time),
+                String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "5"),
+                String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "10"),
+                String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "15"),
+                String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "30"),
+                String.format(Locale.getDefault(), getString(R.string.minutes_before_hint), "60")
+            };
 
         String currentValue = timeEdit.getText() != null ? timeEdit.getText().toString().trim() : "5";
         int selectedIndex = 1; // Default to 5 minutes
@@ -420,40 +477,38 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         try {
+            // Optimize: parse date only once and reuse Calendar
             Date date = dateFormat.parse(selectedDate);
-            if (date != null) {
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(date);
-                yearText.setText(String.valueOf(cal.get(Calendar.YEAR)));
-            } else {
-                if (selectedDate.length() >= 4) {
-                    yearText.setText(selectedDate.substring(0, 4));
-                } else {
-                    Calendar cal = Calendar.getInstance();
-                    yearText.setText(String.valueOf(cal.get(Calendar.YEAR)));
-                }
-            }
-        } catch (Exception e) {
             Calendar cal = Calendar.getInstance();
+            if (date != null) {
+                cal.setTime(date);
+            }
             yearText.setText(String.valueOf(cal.get(Calendar.YEAR)));
+        } catch (Exception e) {
+            // Fallback: extract year from string if parsing fails
+            if (selectedDate.length() >= 4) {
+                yearText.setText(selectedDate.substring(0, 4));
+            } else {
+                Calendar cal = Calendar.getInstance();
+                yearText.setText(String.valueOf(cal.get(Calendar.YEAR)));
+            }
         }
     }
 
     private void updateMonthText() {
-        if (monthText == null || selectedDate == null) {
+        if (monthText == null || selectedDate == null || monthFormat == null) {
             return;
         }
         try {
             Date date = dateFormat.parse(selectedDate);
-            if (date != null) {
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(date);
-                SimpleDateFormat monthFormat = new SimpleDateFormat("MMM", Locale.ENGLISH);
-                monthText.setText(monthFormat.format(cal.getTime()));
-            }
-        } catch (Exception e) {
             Calendar cal = Calendar.getInstance();
-            SimpleDateFormat monthFormat = new SimpleDateFormat("MMM", Locale.ENGLISH);
+            if (date != null) {
+                cal.setTime(date);
+            }
+            monthText.setText(monthFormat.format(cal.getTime()));
+        } catch (Exception e) {
+            // Use cached monthFormat instead of creating new one
+            Calendar cal = Calendar.getInstance();
             monthText.setText(monthFormat.format(cal.getTime()));
         }
     }
@@ -592,10 +647,11 @@ public class MainActivity extends AppCompatActivity {
             List<Reminder> allReminders = reminderManager.getAllReminders();
             Set<String> datesWithReminders = new HashSet<>();
             
+            // First pass: collect unique dates (optimized - no parsing yet)
             for (Reminder reminder : allReminders) {
                 if (reminder != null && !reminder.isCompleted() && !reminder.isDeleted()) {
                     String date = reminder.getDate();
-                    if (date != null) {
+                    if (date != null && !date.isEmpty()) {
                         datesWithReminders.add(date);
                     }
                 }
@@ -606,7 +662,8 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             
-            List<String> displayDates = new ArrayList<>();
+            // Second pass: format dates (only parse unique dates, not all reminders)
+            List<String> displayDates = new ArrayList<>(datesWithReminders.size());
             for (String dateStr : datesWithReminders) {
                 try {
                     Date date = dateFormat.parse(dateStr);
@@ -664,13 +721,24 @@ public class MainActivity extends AppCompatActivity {
         timeRunnable = new Runnable() {
             @Override
             public void run() {
+                // Check if Activity is still valid before updating UI
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                
                 Date now = new Date();
                 if (currentDateTimeDisplay != null && currentDateTimeFormat != null && timeFormat != null) {
-                    String dateStr = currentDateTimeFormat.format(now);
-                    String timeStr = timeFormat.format(now);
-                    currentDateTimeDisplay.setText(getString(R.string.date_time_format, dateStr, timeStr));
+                    try {
+                        String dateStr = currentDateTimeFormat.format(now);
+                        String timeStr = timeFormat.format(now);
+                        currentDateTimeDisplay.setText(getString(R.string.date_time_format, dateStr, timeStr));
+                    } catch (Exception e) {
+                        // Activity or view may be destroyed, stop updating
+                        Log.d(TAG, "Failed to update time display, stopping updates", e);
+                        return;
+                    }
                 }
-                if (timeHandler != null) {
+                if (timeHandler != null && !isFinishing() && !isDestroyed()) {
                     timeHandler.postDelayed(this, 1000);
                 }
             }
@@ -717,8 +785,12 @@ public class MainActivity extends AppCompatActivity {
                 if (reminder != null && !reminder.isCompleted() && !reminder.isDeleted() 
                         && reminder.isEnableNotification() && reminder.getStartTime() != null 
                         && !reminder.getStartTime().isEmpty()) {
-                    AlarmHelper.setAlarm(this, reminder);
-                    restoredCount++;
+                    boolean alarmSet = AlarmHelper.setAlarm(this, reminder);
+                    if (alarmSet) {
+                        restoredCount++;
+                    } else {
+                        Log.d(TAG, "Skipped restoring alarm for reminder (time in past): " + reminder.getId());
+                    }
                 }
             }
             Log.d(TAG, "Restored " + restoredCount + " alarms");
@@ -730,8 +802,31 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // Stop time updates to prevent UI updates after Activity is destroyed
         if (timeHandler != null && timeRunnable != null) {
             timeHandler.removeCallbacks(timeRunnable);
+            timeRunnable = null;
+        }
+        timeHandler = null;
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Pause time updates when Activity goes to background
+        if (timeHandler != null && timeRunnable != null) {
+            timeHandler.removeCallbacks(timeRunnable);
+        }
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Resume time updates when Activity comes to foreground
+        if (timeHandler != null && timeRunnable != null) {
+            timeHandler.post(timeRunnable);
+        } else {
+            startTimeUpdates();
         }
     }
 }

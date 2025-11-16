@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F5F5F5">
+    android:background="?attr/colorSurface">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
@@ -46,7 +46,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:layout_marginBottom="12dp">
+                        android:layout_marginBottom="16dp">
 
                         <TextView
                             android:layout_width="0dp"
@@ -55,41 +55,51 @@
                             android:text="@string/select_date"
                             android:textSize="20sp"
                             android:textStyle="bold"
-                            android:textColor="?attr/colorPrimary" />
+                            android:textColor="?attr/colorPrimary"
+                            android:gravity="start|center_vertical" />
 
-                        <TextView
-                            android:id="@+id/yearText"
+                        <LinearLayout
                             android:layout_width="wrap_content"
-                            android:layout_height="48dp"
-                            android:minWidth="48dp"
-                            android:gravity="center"
-                            android:text=""
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:textColor="?attr/colorPrimary"
-                            android:paddingStart="12dp"
-                            android:paddingEnd="12dp"
-                            android:background="?attr/selectableItemBackground"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
                             android:clickable="true"
                             android:focusable="true"
-                            android:contentDescription="@string/select_year" />
+                            android:contentDescription="@string/select_year">
+
+                            <TextView
+                                android:id="@+id/yearText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:minHeight="48dp"
+                                android:gravity="center"
+                                android:text=""
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="?attr/colorPrimary"
+                                android:paddingStart="8dp"
+                                android:paddingEnd="8dp" />
                         
-                        <TextView
-                            android:id="@+id/monthText"
-                            android:layout_width="wrap_content"
-                            android:layout_height="48dp"
-                            android:minWidth="48dp"
-                            android:gravity="center"
-                            android:text=""
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:textColor="?attr/colorPrimary"
-                            android:paddingStart="12dp"
-                            android:paddingEnd="12dp"
-                            android:background="?attr/selectableItemBackground"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:contentDescription="@string/select_month" />
+                            <TextView
+                                android:id="@+id/monthText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:minHeight="48dp"
+                                android:gravity="center"
+                                android:text=""
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="?attr/colorPrimary"
+                                android:paddingStart="8dp"
+                                android:paddingEnd="8dp"
+                                android:contentDescription="@string/select_month" />
+
+                        </LinearLayout>
 
                     </LinearLayout>
 
@@ -109,13 +119,13 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:layout_marginTop="8dp"
-                        android:paddingStart="8dp"
-                        android:paddingEnd="8dp">
+                        android:layout_marginTop="12dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp">
                         
                         <View
-                            android:layout_width="12dp"
-                            android:layout_height="12dp"
+                            android:layout_width="10dp"
+                            android:layout_height="10dp"
                             android:background="@drawable/reminder_dot"
                             android:layout_marginEnd="8dp" />
                         
@@ -124,7 +134,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/reminder_date_indicator"
                             android:textSize="12sp"
-                            android:textColor="#666666" />
+                            android:textColor="?android:attr/textColorSecondary" />
                     </LinearLayout>
 
                     <TextView
@@ -132,10 +142,13 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text=""
-                        android:textSize="12sp"
-                        android:textColor="#666666"
-                        android:layout_marginTop="8dp"
+                        android:textSize="13sp"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:layout_marginTop="12dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
                         android:gravity="center"
+                        android:lineSpacingExtra="2dp"
                         android:visibility="gone" />
 
                 </LinearLayout>
@@ -148,7 +161,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="?attr/colorSurfaceVariant">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -160,8 +175,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/current_date_amp_time"
-                        android:textSize="14sp"
-                        android:textColor="#666666"
+                        android:textSize="13sp"
+                        android:textColor="?android:attr/textColorSecondary"
                         android:layout_marginBottom="8dp" />
 
                     <TextView
@@ -169,9 +184,10 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text=""
-                        android:textSize="16sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="?attr/colorPrimary" />
+                        android:textColor="?attr/colorPrimary"
+                        android:letterSpacing="0.02" />
 
                 </LinearLayout>
 
@@ -183,31 +199,37 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="20dp">
 
                     <TextView
                         android:id="@+id/selectedDateText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/please_select_date"
-                        android:textSize="18sp"
+                        android:textSize="20sp"
                         android:textStyle="bold"
                         android:textColor="?attr/colorPrimary"
-                        android:layout_marginBottom="16dp" />
+                        android:gravity="center"
+                        android:layout_marginBottom="20dp"
+                        android:letterSpacing="0.02" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/addReminderButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:minHeight="48dp"
+                        android:minHeight="56dp"
                         android:text="@string/add_reminder"
+                        android:textSize="16sp"
                         style="@style/Widget.Material3.Button"
+                        app:icon="@android:drawable/ic_input_add"
+                        app:iconGravity="textStart"
                         tools:ignore="VisualLintButtonSize" />
 
                 </LinearLayout>
@@ -219,7 +241,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -231,9 +254,12 @@
                         android:id="@+id/viewRemindersButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:minHeight="48dp"
+                        android:minHeight="56dp"
                         android:text="@string/view_all_reminders"
+                        android:textSize="16sp"
                         style="@style/Widget.Material3.Button.OutlinedButton"
+                        app:icon="@android:drawable/ic_menu_view"
+                        app:iconGravity="textStart"
                         tools:ignore="VisualLintButtonSize" />
 
                 </LinearLayout>

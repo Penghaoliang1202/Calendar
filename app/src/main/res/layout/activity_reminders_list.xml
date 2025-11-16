@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F5F5F5">
+    android:background="?attr/colorSurface">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
@@ -32,14 +32,21 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/historyButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/view_history"
+            android:textSize="16sp"
+            android:minHeight="56dp"
             style="@style/Widget.Material3.Button.OutlinedButton"
+            app:icon="@android:drawable/ic_menu_recent_history"
+            app:iconGravity="textStart"
             android:layout_marginBottom="16dp"
             tools:ignore="VisualLintButtonSize" />
 
@@ -47,17 +54,23 @@
             android:id="@+id/remindersRecyclerView"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="8dp"
+            android:scrollbars="vertical" />
 
         <TextView
             android:id="@+id/emptyRemindersText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/no_reminders"
-            android:textSize="16sp"
-            android:textColor="#999999"
+            android:textSize="18sp"
+            android:textColor="?android:attr/textColorSecondary"
             android:gravity="center"
             android:layout_gravity="center"
+            android:paddingTop="48dp"
+            android:paddingBottom="48dp"
+            android:drawablePadding="16dp"
             android:visibility="gone" />
 
     </LinearLayout>

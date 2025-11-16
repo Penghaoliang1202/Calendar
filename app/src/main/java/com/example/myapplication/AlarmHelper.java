@@ -15,14 +15,18 @@ import java.util.Locale;
 public class AlarmHelper {
     private static final String TAG = "AlarmHelper";
 
-    public static void setAlarm(Context context, Reminder reminder) {
+    /**
+     * Set alarm for reminder
+     * @return true if alarm was set successfully, false if alarm time is in the past
+     */
+    public static boolean setAlarm(Context context, Reminder reminder) {
         if (context == null || reminder == null) {
-            return;
+            return false;
         }
 
         if (!reminder.isEnableNotification() || reminder.getStartTime() == null || reminder.getStartTime().isEmpty()) {
             Log.d(TAG, "Reminder notification is disabled or start time is empty");
-            return;
+            return false;
         }
 
         try {
@@ -34,7 +38,7 @@ public class AlarmHelper {
 
             if (dateStr == null || dateStr.isEmpty() || timeStr == null || timeStr.isEmpty()) {
                 Log.e(TAG, "Reminder date or time is empty");
-                return;
+                return false;
             }
 
             // Parse date
@@ -42,14 +46,14 @@ public class AlarmHelper {
             Date date = dateFormat.parse(dateStr);
             if (date == null) {
                 Log.e(TAG, "Failed to parse date: " + dateStr);
-                return;
+                return false;
             }
 
             // Parse time string (HH:mm)
             String[] timeParts = timeStr.split(":");
             if (timeParts.length != 2) {
                 Log.e(TAG, "Invalid time format: " + timeStr);
-                return;
+                return false;
             }
 
             int hour = Integer.parseInt(timeParts[0]);
@@ -80,7 +84,7 @@ public class AlarmHelper {
             // Check if the alarm time is in the past
             if (alarmTime <= currentTime) {
                 Log.w(TAG, "Alarm time is in the past, skipping. Alarm time: " + calendar.getTime() + ", Current: " + new Date(currentTime));
-                return;
+                return false;
             }
 
             // Create intent for AlarmReceiver
@@ -98,7 +102,7 @@ public class AlarmHelper {
             AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             if (alarmManager == null) {
                 Log.e(TAG, "AlarmManager is null");
-                return;
+                return false;
             }
 
             // Check if AlarmManager can schedule exact alarms (Android 12+)
@@ -106,7 +110,7 @@ public class AlarmHelper {
                 if (!alarmManager.canScheduleExactAlarms()) {
                     Log.e(TAG, "Cannot schedule exact alarms. User needs to grant permission in settings.");
                     // You might want to show a dialog here to guide user to settings
-                    return;
+                    return false;
                 }
             }
 
@@ -119,10 +123,13 @@ public class AlarmHelper {
             Log.d(TAG, "  Reminder title: " + reminder.getTitle());
             Log.d(TAG, "  Will trigger at: " + calendar.getTime());
             Log.d(TAG, "  Notification minutes before: " + minutesBefore);
+            return true;
         } catch (ParseException e) {
             Log.e(TAG, "Failed to parse reminder date/time", e);
+            return false;
         } catch (Exception e) {
             Log.e(TAG, "Failed to set alarm", e);
+            return false;
         }
     }
 

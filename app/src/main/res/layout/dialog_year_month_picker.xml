@@ -5,28 +5,35 @@
     android:layout_height="wrap_content"
     android:baselineAligned="false"
     android:orientation="horizontal"
-    android:padding="16dp"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="16dp"
     tools:ignore="VisualLintBounds">
 
     <ListView
         android:id="@+id/yearListView"
         android:layout_width="0dp"
-        android:layout_height="350dp"
+        android:layout_height="400dp"
         android:layout_weight="1"
-        android:layout_marginEnd="8dp"
+        android:layout_marginEnd="12dp"
         android:divider="@android:color/transparent"
-        android:dividerHeight="4dp"
-        android:choiceMode="singleChoice" />
+        android:dividerHeight="6dp"
+        android:choiceMode="singleChoice"
+        android:scrollbars="vertical"
+        android:fadeScrollbars="true" />
 
     <ListView
         android:id="@+id/monthListView"
         android:layout_width="0dp"
-        android:layout_height="350dp"
+        android:layout_height="400dp"
         android:layout_weight="1"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="12dp"
         android:divider="@android:color/transparent"
-        android:dividerHeight="4dp"
-        android:choiceMode="singleChoice" />
+        android:dividerHeight="6dp"
+        android:choiceMode="singleChoice"
+        android:scrollbars="vertical"
+        android:fadeScrollbars="true" />
 
 </LinearLayout>
 
