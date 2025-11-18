@@ -433,7 +433,13 @@ public class RemindersListActivity extends AppCompatActivity {
                     if (reminder.isEnableNotification()) {
                         AlarmHelper.cancelAlarm(RemindersListActivity.this, reminder);
                     }
-                    reminderManager.deleteReminder(reminder.getId());
+                    
+                    // If in history view, permanently delete; otherwise mark as deleted
+                    if (showingHistory) {
+                        reminderManager.permanentlyDeleteReminder(reminder.getId());
+                    } else {
+                        reminderManager.deleteReminder(reminder.getId());
+                    }
                     loadReminders();
                 })
                 .setNegativeButton(getString(R.string.cancel), null);
