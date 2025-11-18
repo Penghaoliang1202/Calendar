@@ -61,6 +61,18 @@ public class ReminderManager {
         }
     }
 
+    /**
+     * Permanently delete a reminder from the list (used in history view)
+     */
+    public void permanentlyDeleteReminder(String reminderId) {
+        if (reminderId == null) {
+            return;
+        }
+        List<Reminder> reminders = getAllReminders();
+        reminders.removeIf(reminder -> reminder != null && reminderId.equals(reminder.getId()));
+        saveReminders(reminders);
+    }
+
     public List<Reminder> getAllReminders() {
         if (sharedPreferences == null || gson == null) {
             return new ArrayList<>();

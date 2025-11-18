@@ -11,6 +11,7 @@
     <string name="clear_all">Clear All</string>
     <string name="clear_all_history">Clear All History</string>
     <string name="clear_all_history_message">Are you sure you want to clear all history reminders? This action cannot be undone.</string>
+    <string name="all_history_cleared">All history reminders have been cleared</string>
     <string name="view_history">View History</string>
     <string name="all_reminders">All Reminders</string>
     <string name="history">History</string>

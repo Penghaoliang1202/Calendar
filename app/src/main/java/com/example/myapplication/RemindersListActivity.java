@@ -26,6 +26,9 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
+
+import org.jetbrains.annotations.TestOnly;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -447,15 +450,30 @@ public class RemindersListActivity extends AppCompatActivity {
     }
 
     private void showClearHistoryConfirmDialog() {
+        List<Reminder> completedReminders = reminderManager.getCompletedReminders();
+        if (completedReminders.isEmpty()) {
+            Toast.makeText(this, getString(R.string.no_history_reminders), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.CustomDialogTheme)
                 .setTitle(getString(R.string.clear_all_history))
                 .setMessage(getString(R.string.clear_all_history_message))
                 .setPositiveButton(getString(R.string.clear_all), (dialog, which) -> {
+                    // Cancel alarms for all completed reminders before clearing
+                    for (Reminder reminder : completedReminders) {
+                        if (reminder != null && reminder.isEnableNotification()) {
+                            AlarmHelper.cancelAlarm(RemindersListActivity.this, reminder);
+                        }
+                    }
+                    // Permanently delete all completed reminders
                     reminderManager.clearAllCompletedReminders();
+                    Toast.makeText(RemindersListActivity.this, getString(R.string.all_history_cleared), Toast.LENGTH_SHORT).show();
                     loadReminders();
                 })
                 .setNegativeButton(getString(R.string.cancel), null);
         builder.show();
     }
+
 }
 
