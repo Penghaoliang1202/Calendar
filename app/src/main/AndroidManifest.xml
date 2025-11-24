@@ -35,7 +35,7 @@
         <activity
             android:name=".QuickAddReminderActivity"
             android:exported="false"
-            android:theme="@style/Theme.MyApplication"
+            android:theme="@style/Theme.Transparent"
             android:windowSoftInputMode="adjustResize" />
 
         <receiver
@@ -55,6 +55,10 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_reminder_info" />
         </receiver>
+        <service
+            android:name=".ReminderWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
     </application>
 
 </manifest>

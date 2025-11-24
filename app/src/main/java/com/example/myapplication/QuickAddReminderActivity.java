@@ -1,5 +1,6 @@
 package com.example.myapplication;
 
+import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
@@ -25,15 +26,27 @@ public class QuickAddReminderActivity extends AppCompatActivity {
     private static final String TAG = "QuickAddReminderActivity";
     private ReminderManager reminderManager;
     private SimpleDateFormat dateFormat;
+    private SimpleDateFormat displayDateFormat;
     private String selectedDate;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
+        // Make window transparent to show system desktop/wallpaper
+        if (getWindow() != null) {
+            getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            // Set flags to show wallpaper/desktop
+            android.view.WindowManager.LayoutParams params = getWindow().getAttributes();
+            params.flags |= android.view.WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER;
+            params.flags |= android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+            getWindow().setAttributes(params);
+        }
+        
         try {
             reminderManager = new ReminderManager(this);
             dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            displayDateFormat = new SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.ENGLISH);
             Date today = new Date();
             selectedDate = dateFormat.format(today);
             
@@ -55,15 +68,29 @@ public class QuickAddReminderActivity extends AppCompatActivity {
             }
             
             TextInputEditText titleEdit = dialogView.findViewById(R.id.quickTitleEdit);
+            TextInputEditText dateEdit = dialogView.findViewById(R.id.quickDateEdit);
             TextInputEditText startTimeEdit = dialogView.findViewById(R.id.quickStartTimeEdit);
             TextInputEditText endTimeEdit = dialogView.findViewById(R.id.quickEndTimeEdit);
             SwitchMaterial notificationSwitch = dialogView.findViewById(R.id.quickNotificationSwitch);
             
-            if (titleEdit == null || startTimeEdit == null || endTimeEdit == null || notificationSwitch == null) {
+            if (titleEdit == null || dateEdit == null || startTimeEdit == null || endTimeEdit == null || notificationSwitch == null) {
                 Toast.makeText(this, "Failed to initialize dialog views", Toast.LENGTH_SHORT).show();
                 finish();
                 return;
             }
+            
+            // Set default date to today
+            try {
+                Date date = dateFormat.parse(selectedDate);
+                if (date != null) {
+                    dateEdit.setText(displayDateFormat.format(date));
+                } else {
+                    dateEdit.setText(selectedDate);
+                }
+            } catch (Exception e) {
+                dateEdit.setText(selectedDate);
+            }
+            dateEdit.setOnClickListener(v -> showDatePicker(dateEdit));
 
             // Set default time to current time + 1 hour
             Calendar calendar = Calendar.getInstance();
@@ -92,7 +119,7 @@ public class QuickAddReminderActivity extends AppCompatActivity {
                 }
             }, 100);
 
-            MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.CustomDialogTheme)
+            MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.QuickAddDialogTheme)
                     .setView(dialogView)
                     .setPositiveButton(getString(R.string.save), null)
                     .setNegativeButton(getString(R.string.cancel), (dialog, which) -> finish());
@@ -104,10 +131,22 @@ public class QuickAddReminderActivity extends AppCompatActivity {
                     (int) (getResources().getDisplayMetrics().widthPixels * 0.9),
                     android.view.ViewGroup.LayoutParams.WRAP_CONTENT
                 );
+                // Make dialog window background transparent
+                dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
             }
             
             dialog.setOnShowListener(dialogInterface -> {
             android.widget.Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            android.widget.Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            
+            // Set button colors to ensure visibility
+            if (positiveButton != null) {
+                positiveButton.setTextColor(0xFF6200EE); // Material Design primary color
+            }
+            if (negativeButton != null) {
+                negativeButton.setTextColor(0xFF6200EE); // Material Design primary color
+            }
+            
             if (positiveButton != null) {
                 positiveButton.setOnClickListener(v -> {
                     String title = titleEdit.getText() != null ? titleEdit.getText().toString().trim() : "";
@@ -117,6 +156,64 @@ public class QuickAddReminderActivity extends AppCompatActivity {
                     if (TextUtils.isEmpty(title)) {
                         Toast.makeText(QuickAddReminderActivity.this, 
                             getString(R.string.please_enter_title_or_content), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    
+                    // Validate selected date and time combination is not in the past
+                    try {
+                        Date selectedDateObj = dateFormat.parse(selectedDate);
+                        if (selectedDateObj != null) {
+                            Calendar selectedCalendar = Calendar.getInstance();
+                            selectedCalendar.setTime(selectedDateObj);
+                            
+                            // If start time is provided, validate the full date+time combination
+                            if (!startTime.isEmpty()) {
+                                try {
+                                    String[] timeParts = startTime.split(":");
+                                    if (timeParts.length == 2) {
+                                        int hour = Integer.parseInt(timeParts[0]);
+                                        int minute = Integer.parseInt(timeParts[1]);
+                                        selectedCalendar.set(Calendar.HOUR_OF_DAY, hour);
+                                        selectedCalendar.set(Calendar.MINUTE, minute);
+                                        selectedCalendar.set(Calendar.SECOND, 0);
+                                        selectedCalendar.set(Calendar.MILLISECOND, 0);
+                                    }
+                                } catch (Exception e) {
+                                    // Invalid time format, just validate date
+                                    selectedCalendar.set(Calendar.HOUR_OF_DAY, 0);
+                                    selectedCalendar.set(Calendar.MINUTE, 0);
+                                    selectedCalendar.set(Calendar.SECOND, 0);
+                                    selectedCalendar.set(Calendar.MILLISECOND, 0);
+                                }
+                            } else {
+                                // No time provided, validate date only
+                                selectedCalendar.set(Calendar.HOUR_OF_DAY, 0);
+                                selectedCalendar.set(Calendar.MINUTE, 0);
+                                selectedCalendar.set(Calendar.SECOND, 0);
+                                selectedCalendar.set(Calendar.MILLISECOND, 0);
+                            }
+                            
+                            Calendar now = Calendar.getInstance();
+                            
+                            // Check if selected date+time is in the past
+                            if (selectedCalendar.before(now)) {
+                                Toast.makeText(QuickAddReminderActivity.this, 
+                                    getString(R.string.cannot_add_reminders_past_dates), Toast.LENGTH_SHORT).show();
+                                // Reset to today
+                                Calendar today = Calendar.getInstance();
+                                today.set(Calendar.HOUR_OF_DAY, 0);
+                                today.set(Calendar.MINUTE, 0);
+                                today.set(Calendar.SECOND, 0);
+                                today.set(Calendar.MILLISECOND, 0);
+                                selectedDate = dateFormat.format(today.getTime());
+                                dateEdit.setText(displayDateFormat.format(today.getTime()));
+                                return;
+                            }
+                        }
+                    } catch (Exception e) {
+                        android.util.Log.e(TAG, "Failed to validate date", e);
+                        Toast.makeText(QuickAddReminderActivity.this, 
+                            getString(R.string.cannot_add_reminders_past_dates), Toast.LENGTH_SHORT).show();
                         return;
                     }
 
@@ -174,6 +271,61 @@ public class QuickAddReminderActivity extends AppCompatActivity {
         }
     }
 
+    private void showDatePicker(TextInputEditText dateEdit) {
+        Calendar calendar = Calendar.getInstance();
+        try {
+            Date date = dateFormat.parse(selectedDate);
+            if (date != null) {
+                calendar.setTime(date);
+            }
+        } catch (Exception e) {
+            // Use current date
+        }
+        
+        int year = calendar.get(Calendar.YEAR);
+        int month = calendar.get(Calendar.MONTH);
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+        
+        Calendar today = Calendar.getInstance();
+        today.set(Calendar.HOUR_OF_DAY, 0);
+        today.set(Calendar.MINUTE, 0);
+        today.set(Calendar.SECOND, 0);
+        today.set(Calendar.MILLISECOND, 0);
+        long minDate = today.getTimeInMillis();
+        
+        DatePickerDialog datePickerDialog = new DatePickerDialog(this, (view, year1, month1, dayOfMonth) -> {
+            Calendar selectedCalendar = Calendar.getInstance();
+            selectedCalendar.set(year1, month1, dayOfMonth, 0, 0, 0);
+            selectedCalendar.set(Calendar.MILLISECOND, 0);
+            
+            // Get today's date at midnight for comparison
+            Calendar todayForComparison = Calendar.getInstance();
+            todayForComparison.set(Calendar.HOUR_OF_DAY, 0);
+            todayForComparison.set(Calendar.MINUTE, 0);
+            todayForComparison.set(Calendar.SECOND, 0);
+            todayForComparison.set(Calendar.MILLISECOND, 0);
+            
+            // Check if selected date is in the past
+            if (selectedCalendar.before(todayForComparison)) {
+                // Show error message and reset to today
+                Toast.makeText(QuickAddReminderActivity.this, 
+                    getString(R.string.cannot_select_past_dates), Toast.LENGTH_SHORT).show();
+                selectedDate = dateFormat.format(todayForComparison.getTime());
+                dateEdit.setText(displayDateFormat.format(todayForComparison.getTime()));
+            } else {
+                // Valid date selected
+                selectedDate = dateFormat.format(selectedCalendar.getTime());
+                dateEdit.setText(displayDateFormat.format(selectedCalendar.getTime()));
+            }
+        }, year, month, day);
+        
+        // Set minimum date to today (prevents selecting past dates)
+        datePickerDialog.getDatePicker().setMinDate(minDate);
+        // Also disable past dates by setting max date to prevent any workarounds
+        datePickerDialog.getDatePicker().setMaxDate(Long.MAX_VALUE);
+        datePickerDialog.show();
+    }
+
     private void showTimePicker(TextInputEditText timeEdit) {
         Calendar calendar = Calendar.getInstance();
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
@@ -193,14 +345,44 @@ public class QuickAddReminderActivity extends AppCompatActivity {
         }
 
         TimePickerDialog timePickerDialog = new TimePickerDialog(this, (view, hourOfDay, minuteOfHour) -> {
+            // Validate if selected date is today, the time must not be in the past
+            try {
+                Date selectedDateObj = dateFormat.parse(selectedDate);
+                if (selectedDateObj != null) {
+                    Calendar selectedCalendar = Calendar.getInstance();
+                    selectedCalendar.setTime(selectedDateObj);
+                    selectedCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                    selectedCalendar.set(Calendar.MINUTE, minuteOfHour);
+                    selectedCalendar.set(Calendar.SECOND, 0);
+                    selectedCalendar.set(Calendar.MILLISECOND, 0);
+                    
+                    Calendar now = Calendar.getInstance();
+                    
+                    // Check if selected date+time is in the past
+                    if (selectedCalendar.before(now)) {
+                        Toast.makeText(QuickAddReminderActivity.this, 
+                            getString(R.string.reminder_time_past_detail, 
+                                selectedDate + " " + String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minuteOfHour)), 
+                            Toast.LENGTH_SHORT).show();
+                        // Reset to current time + 1 hour
+                        Calendar futureTime = Calendar.getInstance();
+                        futureTime.add(Calendar.HOUR_OF_DAY, 1);
+                        String validTime = String.format(Locale.getDefault(), "%02d:%02d", 
+                            futureTime.get(Calendar.HOUR_OF_DAY), futureTime.get(Calendar.MINUTE));
+                        timeEdit.setText(validTime);
+                        return;
+                    }
+                }
+            } catch (Exception e) {
+                android.util.Log.e(TAG, "Failed to validate time", e);
+            }
+            
             String time = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minuteOfHour);
             timeEdit.setText(time);
         }, hour, minute, true);
 
         timePickerDialog.show();
     }
-
-
     private void hideKeyboard(View view) {
         if (view != null) {
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);

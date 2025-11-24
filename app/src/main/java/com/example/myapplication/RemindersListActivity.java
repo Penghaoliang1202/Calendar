@@ -30,14 +30,10 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 
-import org.jetbrains.annotations.TestOnly;
-
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 public class RemindersListActivity extends AppCompatActivity {
     private static final String TAG = "RemindersListActivity";
@@ -48,8 +44,6 @@ public class RemindersListActivity extends AppCompatActivity {
     private ReminderManager reminderManager;
     private ReminderAdapter reminderAdapter;
     private boolean showingHistory = false;
-    @SuppressLint("ConstantLocale")
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -222,7 +216,6 @@ public class RemindersListActivity extends AppCompatActivity {
         TextInputEditText notificationTimeEdit = dialogView.findViewById(R.id.notificationTimeEdit);
 
         final Reminder finalReminder = reminder;
-        boolean isEdit = true; // In RemindersListActivity, this is always an edit operation
         
         if (dialogTitle != null) {
             dialogTitle.setText(getString(R.string.edit_reminder));
@@ -243,9 +236,7 @@ public class RemindersListActivity extends AppCompatActivity {
         // Show/hide notification time layout based on switch state
         if (notificationSwitch != null && notificationTimeLayout != null) {
             notificationTimeLayout.setVisibility(notificationSwitch.isChecked() ? View.VISIBLE : View.GONE);
-            notificationSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                notificationTimeLayout.setVisibility(isChecked ? View.VISIBLE : View.GONE);
-            });
+            notificationSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> notificationTimeLayout.setVisibility(isChecked ? View.VISIBLE : View.GONE));
         }
 
         startTimeEdit.setOnClickListener(v -> showTimePicker(startTimeEdit));
@@ -304,32 +295,23 @@ public class RemindersListActivity extends AppCompatActivity {
                                 }
                             } catch (NumberFormatException e) {
                                 // Invalid notification minutes, using default
-                                notificationMinutesBefore = 5;
                             }
                         }
                     }
 
-                    Reminder reminderToSave;
-                    if (isEdit) {
-                        // Cancel old alarm if exists
-                        if (finalReminder.isEnableNotification()) {
-                            AlarmHelper.cancelAlarm(RemindersListActivity.this, finalReminder);
-                        }
-                        
-                        finalReminder.setTitle(title);
-                        finalReminder.setContent(content);
-                        finalReminder.setStartTime(startTime);
-                        finalReminder.setEndTime(endTime);
-                        finalReminder.setTimestamp(System.currentTimeMillis());
-                        finalReminder.setEnableNotification(enableNotification);
-                        finalReminder.setNotificationMinutesBefore(notificationMinutesBefore);
-                        reminderToSave = finalReminder;
-                    } else {
-                        String date = DATE_FORMAT.format(new java.util.Date());
-                        reminderToSave = new Reminder(UUID.randomUUID().toString(), date, title, content, startTime, endTime, System.currentTimeMillis());
-                        reminderToSave.setEnableNotification(enableNotification);
-                        reminderToSave.setNotificationMinutesBefore(notificationMinutesBefore);
+                    // Cancel old alarm if exists
+                    if (finalReminder.isEnableNotification()) {
+                        AlarmHelper.cancelAlarm(RemindersListActivity.this, finalReminder);
                     }
+                    
+                    finalReminder.setTitle(title);
+                    finalReminder.setContent(content);
+                    finalReminder.setStartTime(startTime);
+                    finalReminder.setEndTime(endTime);
+                    finalReminder.setTimestamp(System.currentTimeMillis());
+                    finalReminder.setEnableNotification(enableNotification);
+                    finalReminder.setNotificationMinutesBefore(notificationMinutesBefore);
+                    Reminder reminderToSave = finalReminder;
                     
                     reminderManager.saveReminder(reminderToSave);
                     
@@ -353,10 +335,7 @@ public class RemindersListActivity extends AppCompatActivity {
             }
         });
 
-        dialog.setOnDismissListener(dialogInterface -> {
-            // Hide keyboard when dialog is dismissed
-            hideKeyboard(dialogView);
-        });
+        dialog.setOnDismissListener(dialogInterface -> hideKeyboard(dialogView));
 
         dialog.show();
     }
@@ -416,9 +395,7 @@ public class RemindersListActivity extends AppCompatActivity {
         int selectedIndex = 1; // Default to 5 minutes
         for (int i = 0; i < options.length; i++) {
             if (options[i].equals(currentValue)) {
-                if (selectedIndex != i) {
-                    selectedIndex = i;
-                }
+                selectedIndex = i;
                 break;
             }
         }
