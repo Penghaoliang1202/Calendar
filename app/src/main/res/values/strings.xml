@@ -62,4 +62,11 @@
     <string name="reminder_time_past">Reminder time has already passed. Alarm not set.</string>
     <string name="reminder_time_past_detail">The reminder time (%1$s) is in the past. Please select a future time.</string>
     <string name="notification_time_format">⏰ %1$s %2$s</string>
+    <string name="widget_description">Display reminders and quickly add new reminders</string>
+    <string name="widget_title">Reminders</string>
+    <string name="widget_add_reminder">+ Add Reminder</string>
+    <string name="widget_no_reminders">No reminders</string>
+    <string name="today">Today</string>
+    <string name="no_title">No Title</string>
+    <string name="quick_add_reminder">Quick Add Reminder</string>
 </resources>

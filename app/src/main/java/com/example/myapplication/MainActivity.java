@@ -1,6 +1,8 @@
 package com.example.myapplication;
 
 import android.app.TimePickerDialog;
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
 import androidx.appcompat.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -399,6 +401,7 @@ public class MainActivity extends AppCompatActivity {
                     
                     Toast.makeText(MainActivity.this, getString(R.string.reminder_saved), Toast.LENGTH_SHORT).show();
                     updateReminderIndicator();
+                    updateWidgets();
                     dialog.dismiss();
                 });
             }
@@ -838,6 +841,18 @@ public class MainActivity extends AppCompatActivity {
             timeHandler.post(timeRunnable);
         } else {
             startTimeUpdates();
+        }
+    }
+
+    private void updateWidgets() {
+        Intent intent = new Intent(this, ReminderWidgetProvider.class);
+        intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+        int[] ids = AppWidgetManager.getInstance(this).getAppWidgetIds(
+            new ComponentName(this, ReminderWidgetProvider.class)
+        );
+        if (ids.length > 0) {
+            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
+            sendBroadcast(intent);
         }
     }
 }

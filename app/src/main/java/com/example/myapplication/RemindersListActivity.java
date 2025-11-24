@@ -2,6 +2,9 @@ package com.example.myapplication;
 
 import android.annotation.SuppressLint;
 import android.app.TimePickerDialog;
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
+import android.content.Intent;
 import androidx.appcompat.app.AlertDialog;
 import android.content.Context;
 import android.os.Bundle;
@@ -104,6 +107,7 @@ public class RemindersListActivity extends AppCompatActivity {
                     }
                     reminderManager.markAsCompleted(reminder.getId());
                     loadReminders();
+                    updateWidgets();
                 }
 
                 @Override
@@ -126,6 +130,7 @@ public class RemindersListActivity extends AppCompatActivity {
                     }
                     Toast.makeText(RemindersListActivity.this, getString(R.string.reminder_restored), Toast.LENGTH_SHORT).show();
                     loadReminders();
+                    updateWidgets();
                 }
             });
 
@@ -342,6 +347,7 @@ public class RemindersListActivity extends AppCompatActivity {
                     hideKeyboard(dialogView);
                     
                     loadReminders();
+                    updateWidgets();
                     dialog.dismiss();
                 });
             }
@@ -444,6 +450,8 @@ public class RemindersListActivity extends AppCompatActivity {
                         reminderManager.deleteReminder(reminder.getId());
                     }
                     loadReminders();
+                    updateWidgets();
+                    updateWidgets();
                 })
                 .setNegativeButton(getString(R.string.cancel), null);
         builder.show();
@@ -470,9 +478,22 @@ public class RemindersListActivity extends AppCompatActivity {
                     reminderManager.clearAllCompletedReminders();
                     Toast.makeText(RemindersListActivity.this, getString(R.string.all_history_cleared), Toast.LENGTH_SHORT).show();
                     loadReminders();
+                    updateWidgets();
                 })
                 .setNegativeButton(getString(R.string.cancel), null);
         builder.show();
+    }
+
+    private void updateWidgets() {
+        Intent intent = new Intent(this, ReminderWidgetProvider.class);
+        intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+        int[] ids = AppWidgetManager.getInstance(this).getAppWidgetIds(
+            new ComponentName(this, ReminderWidgetProvider.class)
+        );
+        if (ids.length > 0) {
+            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
+            sendBroadcast(intent);
+        }
     }
 
 }

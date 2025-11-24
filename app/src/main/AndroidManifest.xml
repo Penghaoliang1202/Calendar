@@ -32,11 +32,29 @@
             android:exported="false"
             android:parentActivityName=".MainActivity"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".QuickAddReminderActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MyApplication"
+            android:windowSoftInputMode="adjustResize" />
 
         <receiver
             android:name=".AlarmReceiver"
             android:enabled="true"
             android:exported="false" />
+        <receiver
+            android:name=".ReminderWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.example.myapplication.ACTION_ADD_REMINDER" />
+                <action android:name="com.example.myapplication.ACTION_OPEN_APP" />
+                <action android:name="com.example.myapplication.ACTION_CLICK_REMINDER" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_reminder_info" />
+        </receiver>
     </application>
 
 </manifest>
