@@ -135,16 +135,6 @@ public class RemindersListActivity extends AppCompatActivity {
             }
 
             loadReminders();
-            
-            // Check if we need to scroll to a specific reminder (from widget click)
-            Intent intent = getIntent();
-            if (intent != null) {
-                String reminderId = intent.getStringExtra(ReminderWidgetProvider.EXTRA_REMINDER_ID);
-                if (reminderId != null && !reminderId.isEmpty()) {
-                    // Delay scrolling to ensure RecyclerView is fully laid out
-                    remindersRecyclerView.postDelayed(() -> scrollToReminder(reminderId), 100);
-                }
-            }
         } catch (Exception e) {
             Log.e(TAG, "Failed to initialize RemindersListActivity", e);
             Toast.makeText(this, getString(R.string.app_initialization_failed, e.getMessage()), Toast.LENGTH_LONG).show();
@@ -582,37 +572,6 @@ public class RemindersListActivity extends AppCompatActivity {
                     .setNegativeButton(getString(R.string.cancel), null)
                     .show();
         }
-    }
-
-    /**
-     * Scroll to a specific reminder in the list
-     * @param reminderId The ID of the reminder to scroll to
-     */
-    private void scrollToReminder(String reminderId) {
-        if (reminderId == null || reminderAdapter == null || remindersRecyclerView == null) {
-            return;
-        }
-        
-        // Wait for the RecyclerView to be laid out before scrolling
-        remindersRecyclerView.post(() -> {
-            List<Reminder> reminders = reminderAdapter.getReminders();
-            if (reminders == null) {
-                return;
-            }
-            
-            // Find the position of the reminder with the given ID
-            for (int i = 0; i < reminders.size(); i++) {
-                Reminder reminder = reminders.get(i);
-                if (reminder != null && reminderId.equals(reminder.getId())) {
-                    // Scroll to the position
-                    LinearLayoutManager layoutManager = (LinearLayoutManager) remindersRecyclerView.getLayoutManager();
-                    if (layoutManager != null) {
-                        layoutManager.scrollToPositionWithOffset(i, 0);
-                    }
-                    break;
-                }
-            }
-        });
     }
 
 }

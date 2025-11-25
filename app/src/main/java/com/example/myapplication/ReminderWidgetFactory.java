@@ -95,33 +95,6 @@ public class ReminderWidgetFactory implements RemoteViewsService.RemoteViewsFact
         }
         views.setTextViewText(R.id.itemTime, timeStr);
 
-        // Set click intent - directly create PendingIntent for each item
-        Intent clickIntent = new Intent(context, ReminderWidgetProvider.class);
-        clickIntent.setAction(ReminderWidgetProvider.ACTION_CLICK_REMINDER);
-        clickIntent.putExtra(ReminderWidgetProvider.EXTRA_REMINDER_ID, reminder.getId());
-        
-        // Use position and reminder ID hash to create unique request code
-        // This ensures each item has a unique PendingIntent
-        int requestCode = (position * 1000) + Math.abs(reminder.getId().hashCode() % 1000);
-        int flags = android.app.PendingIntent.FLAG_UPDATE_CURRENT;
-        // minSdk is 27, so FLAG_IMMUTABLE is always available
-        // FLAG_MUTABLE is required for Android 12+ (API 31+)
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            flags |= android.app.PendingIntent.FLAG_MUTABLE;
-        } else {
-            flags |= android.app.PendingIntent.FLAG_IMMUTABLE;
-        }
-        
-        android.app.PendingIntent pendingIntent = android.app.PendingIntent.getBroadcast(
-            context,
-            requestCode,
-            clickIntent,
-            flags
-        );
-        
-        // Set click listener on the root layout
-        views.setOnClickPendingIntent(android.R.id.content, pendingIntent);
-
         return views;
     }
 

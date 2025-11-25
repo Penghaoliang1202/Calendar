@@ -10,8 +10,6 @@ import android.widget.RemoteViews;
 public class ReminderWidgetProvider extends AppWidgetProvider {
     private static final String ACTION_ADD_REMINDER = "com.example.myapplication.ACTION_ADD_REMINDER";
     private static final String ACTION_OPEN_APP = "com.example.myapplication.ACTION_OPEN_APP";
-    static final String ACTION_CLICK_REMINDER = "com.example.myapplication.ACTION_CLICK_REMINDER";
-    static final String EXTRA_REMINDER_ID = "reminder_id";
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
@@ -35,16 +33,6 @@ public class ReminderWidgetProvider extends AppWidgetProvider {
             Intent mainIntent = new Intent(context, MainActivity.class);
             mainIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(mainIntent);
-        } else if (ACTION_CLICK_REMINDER.equals(action)) {
-            // Open reminders list activity to show all reminders
-            Intent remindersIntent = new Intent(context, RemindersListActivity.class);
-            remindersIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            // Pass reminder ID if available (from fill-in intent)
-            String reminderId = intent.getStringExtra(EXTRA_REMINDER_ID);
-            if (reminderId != null && !reminderId.isEmpty()) {
-                remindersIntent.putExtra(EXTRA_REMINDER_ID, reminderId);
-            }
-            context.startActivity(remindersIntent);
         } else if (AppWidgetManager.ACTION_APPWIDGET_UPDATE.equals(action)) {
             // Update all widgets
             int[] appWidgetIds = intent.getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS);

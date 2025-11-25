@@ -49,7 +49,6 @@
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.example.myapplication.ACTION_ADD_REMINDER" />
                 <action android:name="com.example.myapplication.ACTION_OPEN_APP" />
-                <action android:name="com.example.myapplication.ACTION_CLICK_REMINDER" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
