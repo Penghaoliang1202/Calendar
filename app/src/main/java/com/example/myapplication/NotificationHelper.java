@@ -74,33 +74,80 @@ public class NotificationHelper {
             // Format reminder date and time
             String reminderDateTime = formatReminderDateTime(context, reminder);
             
-            // Combine content with time information
-            String notificationText;
-            if (reminderDateTime != null && !reminderDateTime.isEmpty()) {
-                notificationText = content + "\n" + reminderDateTime;
-            } else {
-                notificationText = content;
+            // Build expanded notification text with better formatting
+            StringBuilder bigTextBuilder = new StringBuilder();
+            
+            // Add content (title is already in notification title)
+            if (!content.isEmpty() && !content.equals(context.getString(R.string.reminder_saved))) {
+                bigTextBuilder.append(content);
             }
-
+            
+            // Add date and time information
+            if (reminderDateTime != null && !reminderDateTime.isEmpty()) {
+                if (bigTextBuilder.length() > 0) {
+                    bigTextBuilder.append("\n\n");
+                }
+                bigTextBuilder.append(reminderDateTime);
+            }
+            
+            // Add time range if different from start time
+            if (reminder.getStartTime() != null && !reminder.getStartTime().isEmpty()) {
+                if (reminder.getEndTime() != null && !reminder.getEndTime().isEmpty() && 
+                    !reminder.getEndTime().equals(reminder.getStartTime())) {
+                    if (bigTextBuilder.length() > 0) {
+                        bigTextBuilder.append("\n");
+                    }
+                    bigTextBuilder.append(context.getString(R.string.time_range, 
+                        reminder.getStartTime(), reminder.getEndTime()));
+                }
+            }
+            
+            // If no content, show default message
+            if (bigTextBuilder.length() == 0) {
+                bigTextBuilder.append(context.getString(R.string.reminder_saved));
+            }
+            
+            String notificationText = bigTextBuilder.toString();
+            
+            // Create summary text for collapsed notification (first line)
+            String summaryText;
+            if (!content.isEmpty() && !content.equals(context.getString(R.string.reminder_saved))) {
+                // Show first line of content or first 50 characters
+                summaryText = content.length() > 50 ? content.substring(0, 50) + "..." : content;
+            } else if (reminderDateTime != null && !reminderDateTime.isEmpty()) {
+                summaryText = reminderDateTime;
+            } else {
+                summaryText = context.getString(R.string.reminder_saved);
+            }
+            
             // Get notification sound
             Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
+            // Create BigTextStyle for expanded notification with more content
+            NotificationCompat.BigTextStyle bigTextStyle = new NotificationCompat.BigTextStyle()
+                    .bigText(notificationText)
+                    .setSummaryText(reminderDateTime != null && !reminderDateTime.isEmpty() ? 
+                        reminderDateTime : context.getString(R.string.reminder_saved));
+
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(android.R.drawable.ic_dialog_info)
-                    .setContentTitle(context.getString(R.string.notification_title, title))
-                    .setContentText(notificationText)
-                    .setStyle(new NotificationCompat.BigTextStyle().bigText(notificationText))
+                    .setContentTitle(title)
+                    .setContentText(summaryText)
+                    .setStyle(bigTextStyle)
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setDefaults(NotificationCompat.DEFAULT_ALL)
                     .setSound(soundUri)
                     .setAutoCancel(true)
-                    .setContentIntent(pendingIntent);
+                    .setContentIntent(pendingIntent)
+                    .setShowWhen(true)
+                    .setWhen(System.currentTimeMillis());
 
             NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
             if (notificationManager != null) {
                 // Use reminder ID hash to create unique notification ID
                 int notificationId = NOTIFICATION_ID_BASE + Math.abs(reminder.getId().hashCode());
                 notificationManager.notify(notificationId, builder.build());
+                Log.d(TAG, "Notification shown successfully. Notification ID: " + notificationId + ", Reminder ID: " + reminder.getId());
             } else {
                 Log.e(TAG, "NotificationManager is null");
             }

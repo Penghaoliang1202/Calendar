@@ -72,7 +72,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/date_label"
-                android:textColor="#616161"
+                android:textColor="#424242"
                 android:textSize="12sp" />
 
             <TextView
@@ -81,7 +81,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textSize="12sp"
-                android:textColor="#666666" />
+                android:textColor="#424242" />
 
             <View
                 android:layout_width="0dp"
@@ -92,7 +92,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/time_label"
-                android:textColor="#616161"
+                android:textColor="#424242"
                 android:textSize="12sp" />
 
             <TextView
@@ -101,7 +101,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textSize="12sp"
-                android:textColor="#666666" />
+                android:textColor="#424242" />
 
         </LinearLayout>
 
@@ -118,7 +118,8 @@
                 android:layout_height="wrap_content"
                 android:text="@string/edit"
                 android:textSize="14sp"
-                android:minHeight="40dp"
+                android:minHeight="48dp"
+                android:minWidth="48dp"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_marginEnd="4dp" />
 
@@ -133,7 +134,8 @@
                 android:layout_height="wrap_content"
                 android:text="@string/restore"
                 android:textSize="14sp"
-                android:minHeight="40dp"
+                android:minHeight="48dp"
+                android:minWidth="48dp"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_marginEnd="4dp"
                 android:visibility="gone" />
@@ -144,7 +146,8 @@
                 android:layout_height="wrap_content"
                 android:text="@string/complete"
                 android:textSize="14sp"
-                android:minHeight="40dp"
+                android:minHeight="48dp"
+                android:minWidth="48dp"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_marginEnd="4dp" />
 
@@ -154,7 +157,8 @@
                 android:layout_height="wrap_content"
                 android:text="@string/delete"
                 android:textSize="14sp"
-                android:minHeight="40dp"
+                android:minHeight="48dp"
+                android:minWidth="48dp"
                 style="@style/Widget.Material3.Button.TextButton" />
 
         </LinearLayout>

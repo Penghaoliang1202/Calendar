@@ -19,7 +19,8 @@ public class ReminderManager {
     private final SharedPreferences sharedPreferences;
     private final Gson gson;
     // Cache SimpleDateFormat to avoid repeated creation
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+    // Use Locale.ROOT for ISO date format (yyyy-MM-dd) as it doesn't depend on locale
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
 
     public ReminderManager(Context context) {
         sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -170,17 +171,6 @@ public class ReminderManager {
             return Long.compare(r2.getTimestamp(), r1.getTimestamp());
         });
         return completedReminders;
-    }
-
-    public void clearAllCompletedReminders() {
-        List<Reminder> allReminders = getAllReminders();
-        List<Reminder> activeReminders = new ArrayList<>();
-        for (Reminder reminder : allReminders) {
-            if (reminder != null && !reminder.isCompleted() && !reminder.isDeleted()) {
-                activeReminders.add(reminder);
-            }
-        }
-        saveReminders(activeReminders);
     }
 
     private void saveReminders(List<Reminder> reminders) {

@@ -7,6 +7,7 @@ import android.content.ComponentName;
 import android.content.Intent;
 import androidx.appcompat.app.AlertDialog;
 import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -40,7 +41,6 @@ public class RemindersListActivity extends AppCompatActivity {
     private RecyclerView remindersRecyclerView;
     private TextView emptyRemindersText;
     private MaterialButton historyButton;
-    private MaterialButton clearHistoryButton;
     private ReminderManager reminderManager;
     private ReminderAdapter reminderAdapter;
     private boolean showingHistory = false;
@@ -77,7 +77,6 @@ public class RemindersListActivity extends AppCompatActivity {
             remindersRecyclerView = findViewById(R.id.remindersRecyclerView);
             emptyRemindersText = findViewById(R.id.emptyRemindersText);
             historyButton = findViewById(R.id.historyButton);
-            clearHistoryButton = findViewById(R.id.clearHistoryButton);
 
             reminderManager = new ReminderManager(this);
             reminderAdapter = new ReminderAdapter(new ArrayList<>(), new ReminderAdapter.OnReminderClickListener() {
@@ -135,11 +134,17 @@ public class RemindersListActivity extends AppCompatActivity {
                 historyButton.setOnClickListener(v -> toggleHistoryView());
             }
 
-            if (clearHistoryButton != null) {
-                clearHistoryButton.setOnClickListener(v -> showClearHistoryConfirmDialog());
-            }
-
             loadReminders();
+            
+            // Check if we need to scroll to a specific reminder (from widget click)
+            Intent intent = getIntent();
+            if (intent != null) {
+                String reminderId = intent.getStringExtra(ReminderWidgetProvider.EXTRA_REMINDER_ID);
+                if (reminderId != null && !reminderId.isEmpty()) {
+                    // Delay scrolling to ensure RecyclerView is fully laid out
+                    remindersRecyclerView.postDelayed(() -> scrollToReminder(reminderId), 100);
+                }
+            }
         } catch (Exception e) {
             Log.e(TAG, "Failed to initialize RemindersListActivity", e);
             Toast.makeText(this, getString(R.string.app_initialization_failed, e.getMessage()), Toast.LENGTH_LONG).show();
@@ -167,9 +172,6 @@ public class RemindersListActivity extends AppCompatActivity {
             if (historyButton != null) {
                 historyButton.setText(getString(R.string.view_all_reminders));
             }
-            if (clearHistoryButton != null) {
-                clearHistoryButton.setVisibility(reminders.isEmpty() ? View.GONE : View.VISIBLE);
-            }
         } else {
             reminders = reminderManager.getActiveReminders();
             if (getSupportActionBar() != null) {
@@ -177,9 +179,6 @@ public class RemindersListActivity extends AppCompatActivity {
             }
             if (historyButton != null) {
                 historyButton.setText(getString(R.string.view_history));
-            }
-            if (clearHistoryButton != null) {
-                clearHistoryButton.setVisibility(View.GONE);
             }
         }
         
@@ -200,11 +199,6 @@ public class RemindersListActivity extends AppCompatActivity {
     }
 
     private void showReminderDialog(Reminder reminder) {
-        if (reminder == null) {
-            Log.e(TAG, "Cannot show reminder dialog: reminder is null");
-            return;
-        }
-        
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_reminder, null);
         TextView dialogTitle = dialogView.findViewById(R.id.dialogTitle);
         TextInputEditText titleEdit = dialogView.findViewById(R.id.reminderTitleEdit);
@@ -214,6 +208,7 @@ public class RemindersListActivity extends AppCompatActivity {
         SwitchMaterial notificationSwitch = dialogView.findViewById(R.id.notificationSwitch);
         LinearLayout notificationTimeLayout = dialogView.findViewById(R.id.notificationTimeLayout);
         TextInputEditText notificationTimeEdit = dialogView.findViewById(R.id.notificationTimeEdit);
+        TextInputEditText repeatTypeEdit = dialogView.findViewById(R.id.repeatTypeEdit);
 
         final Reminder finalReminder = reminder;
         
@@ -232,6 +227,9 @@ public class RemindersListActivity extends AppCompatActivity {
         if (notificationTimeEdit != null) {
             notificationTimeEdit.setText(String.valueOf(finalReminder.getNotificationMinutesBefore()));
         }
+        if (repeatTypeEdit != null) {
+            repeatTypeEdit.setText(getRepeatTypeDisplayName(finalReminder.getRepeatType()));
+        }
 
         // Show/hide notification time layout based on switch state
         if (notificationSwitch != null && notificationTimeLayout != null) {
@@ -245,6 +243,11 @@ public class RemindersListActivity extends AppCompatActivity {
         // Set up notification time picker
         if (notificationTimeEdit != null) {
             notificationTimeEdit.setOnClickListener(v -> showNotificationTimePicker(notificationTimeEdit));
+        }
+
+        // Set up repeat type picker
+        if (repeatTypeEdit != null) {
+            repeatTypeEdit.setOnClickListener(v -> showRepeatTypePicker(repeatTypeEdit));
         }
 
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.CustomDialogTheme)
@@ -261,6 +264,22 @@ public class RemindersListActivity extends AppCompatActivity {
             );
         }
         dialog.setOnShowListener(dialogInterface -> {
+            // Auto focus on title edit and show keyboard
+            titleEdit.requestFocus();
+            titleEdit.postDelayed(() -> {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                try {
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (imm != null && titleEdit.hasFocus()) {
+                        imm.showSoftInput(titleEdit, InputMethodManager.SHOW_IMPLICIT);
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "Failed to show keyboard", e);
+                }
+            }, 100);
+            
             android.widget.Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             if (positiveButton != null) {
                 positiveButton.setOnClickListener(v -> {
@@ -280,6 +299,8 @@ public class RemindersListActivity extends AppCompatActivity {
                     }
 
                     // Get notification settings
+                    // notificationSwitch may be null if layout changes, but lint thinks it's always non-null
+                    @SuppressWarnings("ConstantConditions")
                     boolean enableNotification = notificationSwitch != null && notificationSwitch.isChecked();
                     int notificationMinutesBefore = 5; // Default
                     if (enableNotification && notificationTimeEdit != null) {
@@ -299,6 +320,14 @@ public class RemindersListActivity extends AppCompatActivity {
                         }
                     }
 
+                    // Get repeat type
+                    String repeatType = "NONE";
+                    if (repeatTypeEdit != null) {
+                        CharSequence repeatSeq = repeatTypeEdit.getText();
+                        String repeatStr = repeatSeq != null ? repeatSeq.toString().trim() : "";
+                        repeatType = getRepeatTypeFromDisplayName(repeatStr);
+                    }
+
                     // Cancel old alarm if exists
                     if (finalReminder.isEnableNotification()) {
                         AlarmHelper.cancelAlarm(RemindersListActivity.this, finalReminder);
@@ -311,17 +340,30 @@ public class RemindersListActivity extends AppCompatActivity {
                     finalReminder.setTimestamp(System.currentTimeMillis());
                     finalReminder.setEnableNotification(enableNotification);
                     finalReminder.setNotificationMinutesBefore(notificationMinutesBefore);
-                    Reminder reminderToSave = finalReminder;
+                    finalReminder.setRepeatType(repeatType);
                     
-                    reminderManager.saveReminder(reminderToSave);
+                    reminderManager.saveReminder(finalReminder);
                     
                     // Set alarm if notification is enabled
                     if (enableNotification && !startTime.isEmpty()) {
-                        boolean alarmSet = AlarmHelper.setAlarm(RemindersListActivity.this, reminderToSave);
+                        boolean alarmSet = AlarmHelper.setAlarm(RemindersListActivity.this, finalReminder);
                         if (!alarmSet) {
-                            // Alarm time is in the past
-                            String reminderDateTime = reminderToSave.getDate() + " " + startTime;
-                            Toast.makeText(RemindersListActivity.this, getString(R.string.reminder_time_past_detail, reminderDateTime), Toast.LENGTH_LONG).show();
+                            // Check if it's a permission issue
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                android.app.AlarmManager alarmManager = (android.app.AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                                if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
+                                    // Show dialog to guide user to settings
+                                    showExactAlarmPermissionDialog();
+                                } else {
+                                    // Alarm time is in the past
+                                    String reminderDateTime = finalReminder.getDate() + " " + startTime;
+                                    Toast.makeText(RemindersListActivity.this, getString(R.string.reminder_time_past_detail, reminderDateTime), Toast.LENGTH_LONG).show();
+                                }
+                            } else {
+                                // Alarm time is in the past
+                                String reminderDateTime = finalReminder.getDate() + " " + startTime;
+                                Toast.makeText(RemindersListActivity.this, getString(R.string.reminder_time_past_detail, reminderDateTime), Toast.LENGTH_LONG).show();
+                            }
                         }
                     }
                     
@@ -344,11 +386,24 @@ public class RemindersListActivity extends AppCompatActivity {
      * Hide the soft keyboard
      */
     private void hideKeyboard(View view) {
-        if (view != null) {
+        if (view == null || isFinishing() || isDestroyed()) {
+            return;
+        }
+        try {
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             if (imm != null) {
-                imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                android.view.Window window = getWindow();
+                if (window != null) {
+                    android.view.View currentFocus = window.getCurrentFocus();
+                    if (currentFocus != null) {
+                        imm.hideSoftInputFromWindow(currentFocus.getWindowToken(), 0);
+                    } else if (view.getWindowToken() != null) {
+                        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                    }
+                }
             }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to hide keyboard", e);
         }
     }
 
@@ -377,6 +432,70 @@ public class RemindersListActivity extends AppCompatActivity {
         }, hour, minute, true);
 
         timePickerDialog.show();
+    }
+
+    private void showRepeatTypePicker(TextInputEditText repeatTypeEdit) {
+        String[] displayOptions = {
+            getString(R.string.repeat_none),
+            getString(R.string.repeat_daily),
+            getString(R.string.repeat_weekly),
+            getString(R.string.repeat_monthly),
+            getString(R.string.repeat_yearly)
+        };
+
+        CharSequence currentValueSeq = repeatTypeEdit.getText();
+        String currentValue = currentValueSeq != null ? currentValueSeq.toString().trim() : getString(R.string.repeat_none);
+        int selectedIndex = 0; // Default to NONE
+        for (int i = 0; i < displayOptions.length; i++) {
+            if (displayOptions[i].equals(currentValue)) {
+                selectedIndex = i;
+                break;
+            }
+        }
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(getString(R.string.select_repeat_type))
+                .setSingleChoiceItems(displayOptions, selectedIndex, (dialog, which) -> {
+                    repeatTypeEdit.setText(displayOptions[which]);
+                    dialog.dismiss();
+                })
+                .setNegativeButton(getString(R.string.cancel), null)
+                .show();
+    }
+
+    private String getRepeatTypeDisplayName(String repeatType) {
+        if (repeatType == null) {
+            return getString(R.string.repeat_none);
+        }
+        switch (repeatType) {
+            case "DAILY":
+                return getString(R.string.repeat_daily);
+            case "WEEKLY":
+                return getString(R.string.repeat_weekly);
+            case "MONTHLY":
+                return getString(R.string.repeat_monthly);
+            case "YEARLY":
+                return getString(R.string.repeat_yearly);
+            default:
+                return getString(R.string.repeat_none);
+        }
+    }
+
+    private String getRepeatTypeFromDisplayName(String displayName) {
+        if (displayName == null) {
+            return "NONE";
+        }
+        if (displayName.equals(getString(R.string.repeat_daily))) {
+            return "DAILY";
+        } else if (displayName.equals(getString(R.string.repeat_weekly))) {
+            return "WEEKLY";
+        } else if (displayName.equals(getString(R.string.repeat_monthly))) {
+            return "MONTHLY";
+        } else if (displayName.equals(getString(R.string.repeat_yearly))) {
+            return "YEARLY";
+        } else {
+            return "NONE";
+        }
     }
 
     private void showNotificationTimePicker(TextInputEditText timeEdit) {
@@ -428,38 +547,11 @@ public class RemindersListActivity extends AppCompatActivity {
                     }
                     loadReminders();
                     updateWidgets();
-                    updateWidgets();
                 })
                 .setNegativeButton(getString(R.string.cancel), null);
         builder.show();
     }
 
-    private void showClearHistoryConfirmDialog() {
-        List<Reminder> completedReminders = reminderManager.getCompletedReminders();
-        if (completedReminders.isEmpty()) {
-            Toast.makeText(this, getString(R.string.no_history_reminders), Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.CustomDialogTheme)
-                .setTitle(getString(R.string.clear_all_history))
-                .setMessage(getString(R.string.clear_all_history_message))
-                .setPositiveButton(getString(R.string.clear_all), (dialog, which) -> {
-                    // Cancel alarms for all completed reminders before clearing
-                    for (Reminder reminder : completedReminders) {
-                        if (reminder != null && reminder.isEnableNotification()) {
-                            AlarmHelper.cancelAlarm(RemindersListActivity.this, reminder);
-                        }
-                    }
-                    // Permanently delete all completed reminders
-                    reminderManager.clearAllCompletedReminders();
-                    Toast.makeText(RemindersListActivity.this, getString(R.string.all_history_cleared), Toast.LENGTH_SHORT).show();
-                    loadReminders();
-                    updateWidgets();
-                })
-                .setNegativeButton(getString(R.string.cancel), null);
-        builder.show();
-    }
 
     private void updateWidgets() {
         Intent intent = new Intent(this, ReminderWidgetProvider.class);
@@ -471,6 +563,56 @@ public class RemindersListActivity extends AppCompatActivity {
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
             sendBroadcast(intent);
         }
+    }
+
+    private void showExactAlarmPermissionDialog() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            new MaterialAlertDialogBuilder(this, R.style.CustomDialogTheme)
+                    .setTitle(getString(R.string.exact_alarm_permission_required))
+                    .setMessage(getString(R.string.exact_alarm_permission_required))
+                    .setPositiveButton(getString(R.string.open_settings), (dialog, which) -> {
+                        try {
+                            Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                            startActivity(intent);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Failed to open exact alarm settings", e);
+                            Toast.makeText(this, getString(R.string.alarm_set_failed), Toast.LENGTH_LONG).show();
+                        }
+                    })
+                    .setNegativeButton(getString(R.string.cancel), null)
+                    .show();
+        }
+    }
+
+    /**
+     * Scroll to a specific reminder in the list
+     * @param reminderId The ID of the reminder to scroll to
+     */
+    private void scrollToReminder(String reminderId) {
+        if (reminderId == null || reminderAdapter == null || remindersRecyclerView == null) {
+            return;
+        }
+        
+        // Wait for the RecyclerView to be laid out before scrolling
+        remindersRecyclerView.post(() -> {
+            List<Reminder> reminders = reminderAdapter.getReminders();
+            if (reminders == null) {
+                return;
+            }
+            
+            // Find the position of the reminder with the given ID
+            for (int i = 0; i < reminders.size(); i++) {
+                Reminder reminder = reminders.get(i);
+                if (reminder != null && reminderId.equals(reminder.getId())) {
+                    // Scroll to the position
+                    LinearLayoutManager layoutManager = (LinearLayoutManager) remindersRecyclerView.getLayoutManager();
+                    if (layoutManager != null) {
+                        layoutManager.scrollToPositionWithOffset(i, 0);
+                    }
+                    break;
+                }
+            }
+        });
     }
 
 }

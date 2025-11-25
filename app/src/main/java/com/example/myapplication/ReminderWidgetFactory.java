@@ -12,10 +12,10 @@ import java.util.List;
 import java.util.Locale;
 
 public class ReminderWidgetFactory implements RemoteViewsService.RemoteViewsFactory {
-    private Context context;
+    private final Context context;
     private List<Reminder> reminders;
-    private SimpleDateFormat dateFormat;
-    private SimpleDateFormat displayDateFormat;
+    private final SimpleDateFormat dateFormat;
+    private final SimpleDateFormat displayDateFormat;
 
     public ReminderWidgetFactory(Context context, @SuppressWarnings("unused") Intent intent) {
         this.context = context;
@@ -95,10 +95,32 @@ public class ReminderWidgetFactory implements RemoteViewsService.RemoteViewsFact
         }
         views.setTextViewText(R.id.itemTime, timeStr);
 
-        // Set click intent
-        Intent fillInIntent = new Intent();
-        fillInIntent.putExtra(ReminderWidgetProvider.EXTRA_REMINDER_ID, reminder.getId());
-        views.setOnClickFillInIntent(android.R.id.content, fillInIntent);
+        // Set click intent - directly create PendingIntent for each item
+        Intent clickIntent = new Intent(context, ReminderWidgetProvider.class);
+        clickIntent.setAction(ReminderWidgetProvider.ACTION_CLICK_REMINDER);
+        clickIntent.putExtra(ReminderWidgetProvider.EXTRA_REMINDER_ID, reminder.getId());
+        
+        // Use position and reminder ID hash to create unique request code
+        // This ensures each item has a unique PendingIntent
+        int requestCode = (position * 1000) + Math.abs(reminder.getId().hashCode() % 1000);
+        int flags = android.app.PendingIntent.FLAG_UPDATE_CURRENT;
+        // minSdk is 27, so FLAG_IMMUTABLE is always available
+        // FLAG_MUTABLE is required for Android 12+ (API 31+)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            flags |= android.app.PendingIntent.FLAG_MUTABLE;
+        } else {
+            flags |= android.app.PendingIntent.FLAG_IMMUTABLE;
+        }
+        
+        android.app.PendingIntent pendingIntent = android.app.PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            clickIntent,
+            flags
+        );
+        
+        // Set click listener on the root layout
+        views.setOnClickPendingIntent(android.R.id.content, pendingIntent);
 
         return views;
     }
