@@ -1,5 +1,6 @@
 package com.example.myapplication;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
@@ -19,6 +20,7 @@ public class ReminderManager {
     private final SharedPreferences sharedPreferences;
     private final Gson gson;
     // Cache SimpleDateFormat to avoid repeated creation
+    @SuppressLint("ConstantLocale")
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
     public ReminderManager(Context context) {
