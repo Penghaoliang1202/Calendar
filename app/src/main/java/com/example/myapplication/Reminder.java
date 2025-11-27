@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 public class Reminder implements Serializable {
     private final String id;
-    private String date; // Format: yyyy-MM-dd
+    private final String date; // Format: yyyy-MM-dd
     private String title;
     private String content;
     private String startTime; // Format: HH:mm
@@ -14,7 +14,6 @@ public class Reminder implements Serializable {
     private boolean isDeleted; // Whether deleted
     private boolean enableNotification; // Whether to enable system notification
     private int notificationMinutesBefore; // Minutes before reminder time to notify (e.g., 5, 10, 15)
-    private String repeatType; // Repeat type: NONE, DAILY, WEEKLY, MONTHLY, YEARLY
 
     public Reminder(String id, String date, String title, String content, String startTime, String endTime, long timestamp) {
         this.id = id;
@@ -28,7 +27,6 @@ public class Reminder implements Serializable {
         this.isDeleted = false;
         this.enableNotification = false;
         this.notificationMinutesBefore = 5; // Default: 5 minutes before
-        this.repeatType = "NONE"; // Default: no repeat
     }
 
     public String getId() {
@@ -37,10 +35,6 @@ public class Reminder implements Serializable {
 
     public String getDate() {
         return date;
-    }
-
-    public void setDate(String date) {
-        this.date = date;
     }
 
     public String getTitle() {
@@ -113,14 +107,6 @@ public class Reminder implements Serializable {
 
     public void setNotificationMinutesBefore(int notificationMinutesBefore) {
         this.notificationMinutesBefore = notificationMinutesBefore;
-    }
-
-    public String getRepeatType() {
-        return repeatType != null ? repeatType : "NONE";
-    }
-
-    public void setRepeatType(String repeatType) {
-        this.repeatType = repeatType != null ? repeatType : "NONE";
     }
 }
 

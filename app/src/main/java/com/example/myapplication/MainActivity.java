@@ -1,6 +1,5 @@
 package com.example.myapplication;
 
-import android.app.AlarmManager;
 import android.app.TimePickerDialog;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
@@ -54,12 +53,12 @@ public class MainActivity extends AppCompatActivity {
     private MaterialButton viewRemindersButton;
     private ReminderManager reminderManager;
     private String selectedDate;
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-    private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-    private final SimpleDateFormat displayDateFormat = new SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.ENGLISH);
-    private final SimpleDateFormat indicatorDateFormat = new SimpleDateFormat("MMM dd", Locale.ENGLISH);
-    private final SimpleDateFormat currentDateTimeFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.ENGLISH);
-    private final SimpleDateFormat monthFormat = new SimpleDateFormat("MMM", Locale.ENGLISH); // Cache month format
+    private SimpleDateFormat dateFormat;
+    private SimpleDateFormat timeFormat;
+    private SimpleDateFormat displayDateFormat;
+    private SimpleDateFormat indicatorDateFormat;
+    private SimpleDateFormat currentDateTimeFormat;
+    private SimpleDateFormat monthFormat; // Cache month format to avoid repeated creation
     private android.os.Handler timeHandler;
     private Runnable timeRunnable;
     private String todayDate;
@@ -109,14 +108,6 @@ public class MainActivity extends AppCompatActivity {
             // Create notification channel for Android O+
             NotificationHelper.createNotificationChannel(this);
             
-            // Check exact alarm permission (Android 12+)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-                if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
-                    Log.w(TAG, "Exact alarm permission not granted. Reminders may not work correctly.");
-                }
-            }
-            
             // Restore all alarms for active reminders with notifications enabled
             restoreAllAlarms();
         } catch (Exception e) {
@@ -140,6 +131,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void initData() {
         reminderManager = new ReminderManager(this);
+        dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()); // Display seconds
+        displayDateFormat = new SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.ENGLISH);
+        indicatorDateFormat = new SimpleDateFormat("MMM dd", Locale.ENGLISH);
+        currentDateTimeFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.ENGLISH);
+        monthFormat = new SimpleDateFormat("MMM", Locale.ENGLISH); // Cache month format
         
         // Pre-build notification display options to avoid repeated String.format calls
         notificationDisplayOptions = new String[]{
@@ -270,7 +267,6 @@ public class MainActivity extends AppCompatActivity {
         SwitchMaterial notificationSwitch = dialogView.findViewById(R.id.notificationSwitch);
         LinearLayout notificationTimeLayout = dialogView.findViewById(R.id.notificationTimeLayout);
         TextInputEditText notificationTimeEdit = dialogView.findViewById(R.id.notificationTimeEdit);
-        TextInputEditText repeatTypeEdit = dialogView.findViewById(R.id.repeatTypeEdit);
 
         final Reminder finalReminder = reminder;
         boolean isEdit = finalReminder != null;
@@ -290,9 +286,6 @@ public class MainActivity extends AppCompatActivity {
             if (notificationTimeEdit != null) {
                 notificationTimeEdit.setText(String.valueOf(finalReminder.getNotificationMinutesBefore()));
             }
-            if (repeatTypeEdit != null) {
-                repeatTypeEdit.setText(getRepeatTypeDisplayName(finalReminder.getRepeatType()));
-            }
         } else {
             // Default values for new reminder
             if (notificationSwitch != null) {
@@ -300,9 +293,6 @@ public class MainActivity extends AppCompatActivity {
             }
             if (notificationTimeEdit != null) {
                 notificationTimeEdit.setText("5");
-            }
-            if (repeatTypeEdit != null) {
-                repeatTypeEdit.setText(getString(R.string.repeat_none));
             }
         }
 
@@ -321,11 +311,6 @@ public class MainActivity extends AppCompatActivity {
             notificationTimeEdit.setOnClickListener(v -> showNotificationTimePicker(notificationTimeEdit));
         }
 
-        // Set up repeat type picker
-        if (repeatTypeEdit != null) {
-            repeatTypeEdit.setOnClickListener(v -> showRepeatTypePicker(repeatTypeEdit));
-        }
-
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.CustomDialogTheme)
                 .setView(dialogView)
                 .setPositiveButton(getString(R.string.save), null)
@@ -340,22 +325,6 @@ public class MainActivity extends AppCompatActivity {
             );
         }
         dialog.setOnShowListener(dialogInterface -> {
-            // Auto focus on title edit and show keyboard
-            titleEdit.requestFocus();
-            titleEdit.postDelayed(() -> {
-                if (isFinishing() || isDestroyed()) {
-                    return;
-                }
-                try {
-                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                    if (imm != null && titleEdit.hasFocus()) {
-                        imm.showSoftInput(titleEdit, InputMethodManager.SHOW_IMPLICIT);
-                    }
-                } catch (Exception e) {
-                    Log.w(TAG, "Failed to show keyboard", e);
-                }
-            }, 100);
-            
             android.widget.Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             if (positiveButton != null) {
                 positiveButton.setOnClickListener(v -> {
@@ -375,8 +344,6 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     // Get notification settings
-                    // notificationSwitch may be null if layout changes, but lint thinks it's always non-null
-                    @SuppressWarnings("ConstantConditions")
                     boolean enableNotification = notificationSwitch != null && notificationSwitch.isChecked();
                     int notificationMinutesBefore = 5; // Default
                     if (enableNotification && notificationTimeEdit != null) {
@@ -396,14 +363,6 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
 
-                    // Get repeat type
-                    String repeatType = "NONE";
-                    if (repeatTypeEdit != null) {
-                        CharSequence repeatSeq = repeatTypeEdit.getText();
-                        String repeatStr = repeatSeq != null ? repeatSeq.toString().trim() : "";
-                        repeatType = getRepeatTypeFromDisplayName(repeatStr);
-                    }
-
                     Reminder reminderToSave;
                     if (isEdit) {
                         // Cancel old alarm if exists
@@ -418,13 +377,11 @@ public class MainActivity extends AppCompatActivity {
                         finalReminder.setTimestamp(System.currentTimeMillis());
                         finalReminder.setEnableNotification(enableNotification);
                         finalReminder.setNotificationMinutesBefore(notificationMinutesBefore);
-                        finalReminder.setRepeatType(repeatType);
                         reminderToSave = finalReminder;
                     } else {
                         reminderToSave = new Reminder(UUID.randomUUID().toString(), selectedDate, title, content, startTime, endTime, System.currentTimeMillis());
                         reminderToSave.setEnableNotification(enableNotification);
                         reminderToSave.setNotificationMinutesBefore(notificationMinutesBefore);
-                        reminderToSave.setRepeatType(repeatType);
                     }
                     
                     reminderManager.saveReminder(reminderToSave);
@@ -433,22 +390,9 @@ public class MainActivity extends AppCompatActivity {
                     if (enableNotification && !startTime.isEmpty()) {
                         boolean alarmSet = AlarmHelper.setAlarm(MainActivity.this, reminderToSave);
                         if (!alarmSet) {
-                            // Check if it's a permission issue
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-                                if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
-                                    // Show dialog to guide user to settings
-                                    showExactAlarmPermissionDialog();
-                                } else {
-                                    // Alarm time is in the past
-                                    String reminderDateTime = selectedDate + " " + startTime;
-                                    Toast.makeText(MainActivity.this, getString(R.string.reminder_time_past_detail, reminderDateTime), Toast.LENGTH_LONG).show();
-                                }
-                            } else {
-                                // Alarm time is in the past
-                                String reminderDateTime = selectedDate + " " + startTime;
-                                Toast.makeText(MainActivity.this, getString(R.string.reminder_time_past_detail, reminderDateTime), Toast.LENGTH_LONG).show();
-                            }
+                            // Alarm time is in the past
+                            String reminderDateTime = selectedDate + " " + startTime;
+                            Toast.makeText(MainActivity.this, getString(R.string.reminder_time_past_detail, reminderDateTime), Toast.LENGTH_LONG).show();
                         }
                     }
                     
@@ -475,24 +419,11 @@ public class MainActivity extends AppCompatActivity {
      * Hide the soft keyboard
      */
     private void hideKeyboard(View view) {
-        if (view == null || isFinishing() || isDestroyed()) {
-            return;
-        }
-        try {
+        if (view != null) {
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             if (imm != null) {
-                android.view.Window window = getWindow();
-                if (window != null) {
-                    android.view.View currentFocus = window.getCurrentFocus();
-                    if (currentFocus != null) {
-                        imm.hideSoftInputFromWindow(currentFocus.getWindowToken(), 0);
-                    } else if (view.getWindowToken() != null) {
-                        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-                    }
-                }
+                imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
             }
-        } catch (Exception e) {
-            Log.w(TAG, "Failed to hide keyboard", e);
         }
     }
 
@@ -520,70 +451,6 @@ public class MainActivity extends AppCompatActivity {
         }, hour, minute, true);
 
         timePickerDialog.show();
-    }
-
-    private void showRepeatTypePicker(TextInputEditText repeatTypeEdit) {
-        String[] displayOptions = {
-            getString(R.string.repeat_none),
-            getString(R.string.repeat_daily),
-            getString(R.string.repeat_weekly),
-            getString(R.string.repeat_monthly),
-            getString(R.string.repeat_yearly)
-        };
-
-        CharSequence currentValueSeq = repeatTypeEdit.getText();
-        String currentValue = currentValueSeq != null ? currentValueSeq.toString().trim() : getString(R.string.repeat_none);
-        int selectedIndex = 0; // Default to NONE
-        for (int i = 0; i < displayOptions.length; i++) {
-            if (displayOptions[i].equals(currentValue)) {
-                selectedIndex = i;
-                break;
-            }
-        }
-
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(getString(R.string.select_repeat_type))
-                .setSingleChoiceItems(displayOptions, selectedIndex, (dialog, which) -> {
-                    repeatTypeEdit.setText(displayOptions[which]);
-                    dialog.dismiss();
-                })
-                .setNegativeButton(getString(R.string.cancel), null)
-                .show();
-    }
-
-    private String getRepeatTypeDisplayName(String repeatType) {
-        if (repeatType == null) {
-            return getString(R.string.repeat_none);
-        }
-        switch (repeatType) {
-            case "DAILY":
-                return getString(R.string.repeat_daily);
-            case "WEEKLY":
-                return getString(R.string.repeat_weekly);
-            case "MONTHLY":
-                return getString(R.string.repeat_monthly);
-            case "YEARLY":
-                return getString(R.string.repeat_yearly);
-            default:
-                return getString(R.string.repeat_none);
-        }
-    }
-
-    private String getRepeatTypeFromDisplayName(String displayName) {
-        if (displayName == null) {
-            return "NONE";
-        }
-        if (displayName.equals(getString(R.string.repeat_daily))) {
-            return "DAILY";
-        } else if (displayName.equals(getString(R.string.repeat_weekly))) {
-            return "WEEKLY";
-        } else if (displayName.equals(getString(R.string.repeat_monthly))) {
-            return "MONTHLY";
-        } else if (displayName.equals(getString(R.string.repeat_yearly))) {
-            return "YEARLY";
-        } else {
-            return "NONE";
-        }
     }
 
     private void showNotificationTimePicker(TextInputEditText timeEdit) {
@@ -793,14 +660,25 @@ public class MainActivity extends AppCompatActivity {
         }
         
         try {
-            Set<String> datesWithReminders = getDatesWithReminders();
+            List<Reminder> allReminders = reminderManager.getAllReminders();
+            Set<String> datesWithReminders = new HashSet<>();
+            
+            // First pass: collect unique dates (optimized - no parsing yet)
+            for (Reminder reminder : allReminders) {
+                if (reminder != null && !reminder.isCompleted() && !reminder.isDeleted()) {
+                    String date = reminder.getDate();
+                    if (date != null && !date.isEmpty()) {
+                        datesWithReminders.add(date);
+                    }
+                }
+            }
             
             if (datesWithReminders.isEmpty()) {
                 reminderIndicatorText.setVisibility(View.GONE);
                 return;
             }
             
-            // Format dates (only parse unique dates, not all reminders)
+            // Second pass: format dates (only parse unique dates, not all reminders)
             List<String> displayDates = new ArrayList<>(datesWithReminders.size());
             for (String dateStr : datesWithReminders) {
                 try {
@@ -824,28 +702,6 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             reminderIndicatorText.setVisibility(View.GONE);
         }
-    }
-    
-    /**
-     * Collect unique dates from active reminders
-     * @return Set of date strings (format: yyyy-MM-dd) that have active reminders
-     */
-    private Set<String> getDatesWithReminders() {
-        Set<String> datesWithReminders = new HashSet<>();
-        if (reminderManager == null) {
-            return datesWithReminders;
-        }
-        
-        List<Reminder> allReminders = reminderManager.getAllReminders();
-        for (Reminder reminder : allReminders) {
-            if (reminder != null && !reminder.isCompleted() && !reminder.isDeleted()) {
-                String date = reminder.getDate();
-                if (date != null && !date.isEmpty()) {
-                    datesWithReminders.add(date);
-                }
-            }
-        }
-        return datesWithReminders;
     }
     
     
@@ -913,6 +769,8 @@ public class MainActivity extends AppCompatActivity {
                 ActivityCompat.requestPermissions(this,
                         new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
                         PERMISSION_REQUEST_CODE);
+            } else {
+                // POST_NOTIFICATIONS permission already granted
             }
         }
     }
@@ -936,13 +794,20 @@ public class MainActivity extends AppCompatActivity {
         }
         try {
             List<Reminder> allReminders = reminderManager.getAllReminders();
+            int restoredCount = 0;
             for (Reminder reminder : allReminders) {
                 if (reminder != null && !reminder.isCompleted() && !reminder.isDeleted() 
                         && reminder.isEnableNotification() && reminder.getStartTime() != null 
                         && !reminder.getStartTime().isEmpty()) {
-                    AlarmHelper.setAlarm(this, reminder);
+                    boolean alarmSet = AlarmHelper.setAlarm(this, reminder);
+                    if (alarmSet) {
+                        restoredCount++;
+                    } else {
+                        // Skipped restoring alarm for reminder (time in past)
+                    }
                 }
             }
+            // Restored alarms
         } catch (Exception e) {
             Log.e(TAG, "Failed to restore alarms", e);
         }
@@ -988,25 +853,6 @@ public class MainActivity extends AppCompatActivity {
         if (ids.length > 0) {
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
             sendBroadcast(intent);
-        }
-    }
-
-    private void showExactAlarmPermissionDialog() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            new MaterialAlertDialogBuilder(this, R.style.CustomDialogTheme)
-                    .setTitle(getString(R.string.exact_alarm_permission_required))
-                    .setMessage(getString(R.string.exact_alarm_permission_required))
-                    .setPositiveButton(getString(R.string.open_settings), (dialog, which) -> {
-                        try {
-                            Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
-                            startActivity(intent);
-                        } catch (Exception e) {
-                            Log.e(TAG, "Failed to open exact alarm settings", e);
-                            Toast.makeText(this, getString(R.string.alarm_set_failed), Toast.LENGTH_LONG).show();
-                        }
-                    })
-                    .setNegativeButton(getString(R.string.cancel), null)
-                    .show();
         }
     }
 }

@@ -17,8 +17,8 @@ import java.util.Locale;
 public class ReminderAdapter extends RecyclerView.Adapter<ReminderAdapter.ReminderViewHolder> {
     private List<Reminder> reminders;
     private final OnReminderClickListener listener;
-    // Use Locale.ROOT for ISO date format (yyyy-MM-dd) as it doesn't depend on locale
-    private static final SimpleDateFormat INPUT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
+    @SuppressLint("ConstantLocale")
+    private static final SimpleDateFormat INPUT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
     private static final SimpleDateFormat OUTPUT_DATE_FORMAT = new SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.ENGLISH);
 
     public interface OnReminderClickListener {
@@ -59,10 +59,6 @@ public class ReminderAdapter extends RecyclerView.Adapter<ReminderAdapter.Remind
     public void updateReminders(List<Reminder> newReminders) {
         this.reminders = newReminders != null ? newReminders : new ArrayList<>();
         notifyDataSetChanged();
-    }
-
-    public List<Reminder> getReminders() {
-        return reminders;
     }
 
     public static class ReminderViewHolder extends RecyclerView.ViewHolder {

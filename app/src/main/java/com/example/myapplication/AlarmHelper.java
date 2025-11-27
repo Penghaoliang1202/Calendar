@@ -73,22 +73,7 @@ public class AlarmHelper {
 
             // Check if the alarm time is in the past
             if (alarmTime <= currentTime) {
-                // Check if the reminder time itself is also in the past
-                Calendar reminderTime = Calendar.getInstance();
-                reminderTime.setTime(date);
-                reminderTime.set(Calendar.HOUR_OF_DAY, hour);
-                reminderTime.set(Calendar.MINUTE, minute);
-                reminderTime.set(Calendar.SECOND, 0);
-                reminderTime.set(Calendar.MILLISECOND, 0);
-                
-                if (reminderTime.getTimeInMillis() <= currentTime) {
-                    // Reminder time is in the past, this is expected when restoring alarms
-                    Log.d(TAG, "Reminder time is in the past, skipping alarm. Reminder time: " + reminderTime.getTime() + ", Current: " + new Date(currentTime));
-                } else {
-                    // Alarm time is in the past but reminder time is in the future
-                    // This shouldn't happen if validation is correct, but log as warning
-                    Log.w(TAG, "Alarm time is in the past but reminder time is in the future. Alarm time: " + calendar.getTime() + ", Reminder time: " + reminderTime.getTime() + ", Current: " + new Date(currentTime));
-                }
+                Log.w(TAG, "Alarm time is in the past, skipping. Alarm time: " + calendar.getTime() + ", Current: " + new Date(currentTime));
                 return false;
             }
 
@@ -114,33 +99,15 @@ public class AlarmHelper {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 if (!alarmManager.canScheduleExactAlarms()) {
                     Log.e(TAG, "Cannot schedule exact alarms. User needs to grant permission in settings.");
-                    Log.e(TAG, "Alarm time: " + calendar.getTime() + ", Reminder ID: " + reminder.getId());
+                    // You might want to show a dialog here to guide user to settings
                     return false;
                 }
             }
 
             // Since minSdk is 27 (Android 8.1), setExactAndAllowWhileIdle is always available
             // This method is available from API 23 (Android 6.0)
-            // For repeating alarms, we use setExactAndAllowWhileIdle and reschedule in AlarmReceiver
-            // This ensures better reliability on Android 8.0+
-            try {
-                // Always use setExactAndAllowWhileIdle for better reliability
-                // For repeating reminders, we'll reschedule in AlarmReceiver
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-                String repeatType = reminder.getRepeatType();
-                if (repeatType != null && !repeatType.equals("NONE")) {
-                    Log.d(TAG, "Repeating alarm set successfully. Reminder ID: " + reminder.getId() + ", Alarm time: " + calendar.getTime() + ", Repeat: " + repeatType);
-                } else {
-                    Log.d(TAG, "Alarm set successfully. Reminder ID: " + reminder.getId() + ", Alarm time: " + calendar.getTime());
-                }
-                return true;
-            } catch (SecurityException e) {
-                Log.e(TAG, "SecurityException when setting alarm: " + e.getMessage(), e);
-                return false;
-            } catch (Exception e) {
-                Log.e(TAG, "Exception when setting alarm: " + e.getMessage(), e);
-                return false;
-            }
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+            return true;
         } catch (ParseException e) {
             Log.e(TAG, "Failed to parse reminder date/time", e);
             return false;
@@ -174,6 +141,5 @@ public class AlarmHelper {
             Log.e(TAG, "Failed to cancel alarm", e);
         }
     }
-
 }
 

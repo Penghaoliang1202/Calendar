@@ -25,19 +25,16 @@
         android:gravity="center" />
 
     <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="@string/title_hint"
         android:layout_marginBottom="12dp"
-        android:layout_gravity="start"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/quickTitleEdit"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minWidth="250dp"
-            android:maxWidth="400dp"
             android:inputType="text"
             android:imeOptions="actionNext"
             android:maxLines="2" />
@@ -45,18 +42,16 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="@string/select_date"
         android:layout_marginBottom="12dp"
-        android:layout_gravity="start"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/quickDateEdit"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minWidth="200dp"
             android:inputType="date"
             android:focusable="false"
             android:clickable="true" />
@@ -75,21 +70,21 @@
             android:layout_height="wrap_content"
             android:text="@string/time_label_emoji"
             android:textSize="14sp"
-            android:textColor="#424242"
+            android:textColor="#757575"
             android:layout_marginEnd="8dp" />
 
         <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:hint="@string/start_time_hint"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_marginEnd="8dp">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/quickStartTimeEdit"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minWidth="120dp"
                 android:inputType="time"
                 android:focusable="false"
                 android:clickable="true" />
@@ -106,17 +101,17 @@
                 android:layout_marginEnd="8dp" />
 
         <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:hint="@string/end_time_hint"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_marginStart="8dp">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/quickEndTimeEdit"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minWidth="120dp"
                 android:inputType="time"
                 android:focusable="false"
                 android:clickable="true" />
@@ -128,41 +123,22 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:layout_marginTop="8dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/enable_notification"
-                android:textSize="14sp"
-                android:textColor="#212121" />
-
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/quickNotificationSwitch"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-        </LinearLayout>
-
         <TextView
-            android:id="@+id/notificationHintText"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="@string/notification_will_remind_before"
-            android:textSize="12sp"
-            android:textColor="#424242"
-            android:layout_marginTop="4dp"
-            android:layout_marginStart="0dp"
-            android:layout_marginEnd="0dp"
-            android:visibility="visible" />
+            android:layout_weight="1"
+            android:text="@string/enable_notification"
+            android:textSize="14sp"
+            android:textColor="#212121" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/quickNotificationSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
 
     </LinearLayout>
 

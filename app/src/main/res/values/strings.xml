@@ -8,6 +8,10 @@
     <string name="please_select_date">Please select a date</string>
     <string name="add_reminder">Add Reminder</string>
     <string name="view_all_reminders">View All Reminders</string>
+    <string name="clear_all">Clear All</string>
+    <string name="clear_all_history">Clear All History</string>
+    <string name="clear_all_history_message">Are you sure you want to clear all history reminders? This action cannot be undone.</string>
+    <string name="all_history_cleared">All history reminders have been cleared</string>
     <string name="view_history">View History</string>
     <string name="all_reminders">All Reminders</string>
     <string name="history">History</string>
@@ -65,15 +69,4 @@
     <string name="today">Today</string>
     <string name="no_title">No Title</string>
     <string name="quick_add_reminder">Quick Add Reminder</string>
-    <string name="exact_alarm_permission_required">Exact alarm permission is required for reminders. Please enable it in settings.</string>
-    <string name="open_settings">Open Settings</string>
-    <string name="alarm_set_failed">Failed to set reminder alarm. Please check permissions.</string>
-    <string name="notification_will_remind_before">You will be notified 5 minutes before the reminder time</string>
-    <string name="repeat_reminder">Repeat Reminder</string>
-    <string name="repeat_none">No Repeat</string>
-    <string name="repeat_daily">Daily</string>
-    <string name="repeat_weekly">Weekly</string>
-    <string name="repeat_monthly">Monthly</string>
-    <string name="repeat_yearly">Yearly</string>
-    <string name="select_repeat_type">Select Repeat Type</string>
 </resources>

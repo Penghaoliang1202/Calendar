@@ -12,10 +12,10 @@ import java.util.List;
 import java.util.Locale;
 
 public class ReminderWidgetFactory implements RemoteViewsService.RemoteViewsFactory {
-    private final Context context;
+    private Context context;
     private List<Reminder> reminders;
-    private final SimpleDateFormat dateFormat;
-    private final SimpleDateFormat displayDateFormat;
+    private SimpleDateFormat dateFormat;
+    private SimpleDateFormat displayDateFormat;
 
     public ReminderWidgetFactory(Context context, @SuppressWarnings("unused") Intent intent) {
         this.context = context;
@@ -94,6 +94,11 @@ public class ReminderWidgetFactory implements RemoteViewsService.RemoteViewsFact
             }
         }
         views.setTextViewText(R.id.itemTime, timeStr);
+
+        // Set click intent
+        Intent fillInIntent = new Intent();
+        fillInIntent.putExtra(ReminderWidgetProvider.EXTRA_REMINDER_ID, reminder.getId());
+        views.setOnClickFillInIntent(android.R.id.content, fillInIntent);
 
         return views;
     }
